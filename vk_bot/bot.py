@@ -1,5 +1,7 @@
 import vk_api
-from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.longpoll import VkEventType, VkLongPoll
+
+from settings import COMMANDS, MESSAGES
 
 
 class VKBot:
@@ -8,12 +10,12 @@ class VKBot:
         self.vk = vk_api.VkApi(token=self.token)
         self.longpoll = VkLongPoll(self.vk)
 
-    def send_message(self, user_id: int, message: str) -> None:
+    def send_message(self, user_id: int, msg: str) -> None:
         self.vk.method(
             "messages.send",
             {
                 "user_id": user_id,
-                "message": message,
+                "message": msg,
                 "random_id": 0
             }
         )
@@ -23,18 +25,23 @@ class VKBot:
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 request = event.text.strip().lower()
 
-                if request in ("начать", "старт", "start", "запуск"):
+                if request in COMMANDS["start"]:
                     self.send_message(
                         event.user_id,
-                        "Привет! Я бот Atcher. Я помогаю найти "
-                        "новые знакомства 🧡❤\n\n"
-                        "При поиске 🔎 бот 🤖 учитывает ваш город 🏙, "
-                        "возраст 🔞 и пол 🧒🧑\n Данные берутся из "
-                        "вашего профиля вконтакте.\n\n"
-                        "Желаем вам удачи в поиске!\n\n"
-                        "------------------------------------------------\n"
-                        "Версия бота: 1.0.0\n"
-                        "Авторы: "
-                        "Сергей Тормозов и Дмитрий Куренков\n"
-                        "GitHub repository: https://github.com/stormozov/vk-atcher"
+                        MESSAGES["start"]
+                    )
+                elif request in COMMANDS["hello"]:
+                    self.send_message(
+                        event.user_id,
+                        MESSAGES["hello"]
+                    )
+                elif request in COMMANDS["goodbye"]:
+                    self.send_message(
+                        event.user_id,
+                        MESSAGES["goodbye"]
+                    )
+                else:
+                    self.send_message(
+                        event.user_id,
+                        MESSAGES["unknown_command"]
                     )
