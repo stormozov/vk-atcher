@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from vk_bot import VKBot
+from vk_bot.bot import VKBot
 
 load_dotenv()
 
