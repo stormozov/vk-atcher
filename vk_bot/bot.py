@@ -23,7 +23,13 @@ class VKBot:
             }
         )
 
-    def handle_new_user(self, user_id: int) -> None:
+    def start(self) -> None:
+        for event in self.longpoll.listen():
+            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                request = event.text.strip().lower()
+                self._handle_user_request(event, request)
+
+    def _handle_new_user(self, user_id: int) -> None:
         received_info: dict = self.received_profile_info.get_profile_info()
         received_user_url = self.received_profile_info.get_user_url(user_id)
 
@@ -32,29 +38,26 @@ class VKBot:
                 user_id, received_info, received_user_url
             )
 
-    def start(self) -> None:
-        for event in self.longpoll.listen():
-            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                request = event.text.strip().lower()
-
-                if request in COMMANDS["start"]:
-                    self.handle_new_user(event.user_id)
-                    self.send_message(
-                        event.user_id,
-                        MESSAGES["start"]
-                    )
-                elif request in COMMANDS["hello"]:
-                    self.send_message(
-                        event.user_id,
-                        MESSAGES["hello"]
-                    )
-                elif request in COMMANDS["goodbye"]:
-                    self.send_message(
-                        event.user_id,
-                        MESSAGES["goodbye"]
-                    )
-                else:
-                    self.send_message(
-                        event.user_id,
-                        MESSAGES["unknown_command"]
-                    )
+    def _handle_user_request(self, event: vk_api.longpoll, request: str) \
+            -> None:
+        if request in COMMANDS["start"]:
+            self._handle_new_user(event.user_id)
+            self.send_message(
+                event.user_id,
+                MESSAGES["start"]
+            )
+        elif request in COMMANDS["hello"]:
+            self.send_message(
+                event.user_id,
+                MESSAGES["hello"]
+            )
+        elif request in COMMANDS["goodbye"]:
+            self.send_message(
+                event.user_id,
+                MESSAGES["goodbye"]
+            )
+        else:
+            self.send_message(
+                event.user_id,
+                MESSAGES["unknown_command"]
+            )
