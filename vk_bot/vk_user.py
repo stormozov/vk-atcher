@@ -1,3 +1,6 @@
+from vk_bot.utils import calculate_age
+
+
 class UserVK:
 	def __init__(self) -> None:
 		self.id = None
@@ -29,7 +32,7 @@ class UserVK:
 		self.id = user_id
 		self.first_name = user_info.get("first_name")
 		self.last_name = user_info.get("last_name")
-		self.age = None
+		self.age = calculate_age(user_info.get("bdate"))
 		self.sex = user_info.get("sex")
 		self.bdate = user_info.get("bdate")
 		self.city_id = user_info.get("city").get("id")
