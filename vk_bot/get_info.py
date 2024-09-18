@@ -1,4 +1,5 @@
 import os
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -29,8 +30,46 @@ class UserInfoRetriever:
     def get_user_url(user_id: int) -> str:
         return f"https://vk.com/id{user_id}"
 
-    def get_user_photos(self):
-        pass
+    def get_user_photos(self, user_id: int) -> list[dict] | None:
+        try:
+            response = requests.get(
+                f"{self.URL}photos.get",
+                {
+                    "access_token": self.TOKEN,
+                    "v": self.vk_api_version,
+                    "owner_id": user_id,
+                    "album_id": "profile",
+                    "extended": 1,
+                    "photo_sizes": 0
+                }
+            )
+            data = response.json()
+
+            if 'response' in data:
+                photos = data['response']['items']
+                return self._get_best_photos(photos)
+            else:
+                time.sleep(10)
+                self.get_user_photos(user_id)
+        except requests.exceptions.RequestException:
+            return None
+
+    @staticmethod
+    def _get_best_photos(photos: list[dict], count: int = 3) \
+            -> list[str] | None:
+        if not photos:
+            return None
+
+        sorted_photos: list[dict[str, int]] = sorted(
+            photos,
+            key=lambda x: x['likes']['count'],
+            reverse=True
+        )
+
+        return [
+            photo["sizes"][-1]["url"]
+            for photo in sorted_photos[:count]
+        ]
 
     def search_users(
             self,
@@ -58,7 +97,6 @@ class UserInfoRetriever:
             response = requests.get(f"{self.URL}users.search", params)
 
             return response.json()["response"]["items"]
-
         except requests.exceptions.RequestException:
             return None
 
