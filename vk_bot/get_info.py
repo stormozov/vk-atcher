@@ -34,3 +34,15 @@ class UserInfoRetriever:
 
     def search_users(self):
         pass
+
+
+if __name__ == "__main__":
+    user_info_retriever = UserInfoRetriever()
+
+    profile_info = user_info_retriever.get_profile_info()
+
+    if profile_info:
+        print("Profile Information:")
+        print(profile_info)
+    else:
+        print("Failed to retrieve profile information.")
