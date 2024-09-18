@@ -1,5 +1,6 @@
 import os
 import time
+import random
 
 import requests
 from dotenv import load_dotenv
@@ -13,13 +14,15 @@ class UserInfoRetriever:
         self.TOKEN = os.getenv("VK_TOKEN")
         self.vk_api_version = 5.199
 
-    def get_profile_info(self) -> dict[str, str | int] | None:
+    def get_profile_info(self, user_id: int) -> dict[str, str | int] | None:
         try:
             response = requests.get(
-                f"{self.URL}account.getProfileInfo",
+                f"{self.URL}users.get",
                 {
                     "access_token": self.TOKEN,
-                    "v": self.vk_api_version
+                    "v": self.vk_api_version,
+                    "user_ids": user_id,
+                    "fields": "city, bdate, sex, relation, has_photo"
                 }
             )
             return response.json()["response"]
@@ -48,9 +51,6 @@ class UserInfoRetriever:
             if 'response' in data:
                 photos = data['response']['items']
                 return self._get_best_photos(photos)
-            else:
-                time.sleep(10)
-                self.get_user_photos(user_id)
         except requests.exceptions.RequestException:
             return None
 
@@ -80,7 +80,7 @@ class UserInfoRetriever:
             sex: int = 1,
             status: int = 6,
             has_photo: int = 1
-    ) -> list[dict] | None:
+    ) -> list[dict]:
         try:
             params = {
                 "access_token": self.TOKEN,
@@ -98,7 +98,7 @@ class UserInfoRetriever:
 
             return response.json()["response"]["items"]
         except requests.exceptions.RequestException:
-            return None
+            return []
 
     def save_received_users(self):
         pass

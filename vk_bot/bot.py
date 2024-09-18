@@ -1,3 +1,4 @@
+import requests
 import vk_api
 from vk_api.longpoll import VkEventType, VkLongPoll
 
@@ -29,23 +30,16 @@ class VKBot:
                 request = event.text.strip().lower()
                 self._handle_user_request(event, request)
 
-    def _handle_new_user(self, user_id: int) -> None:
-        received_info: dict = self.received_profile_info.get_profile_info()
-        received_user_url = self.received_profile_info.get_user_url(user_id)
-
-        if self.user_info.get_user_info()["id"] is None:
-            self.user_info.set_user_info(
-                user_id, received_info, received_user_url
-            )
-
     def _handle_user_request(self, event: vk_api.longpoll, request: str) \
             -> None:
         if request in COMMANDS["start"]:
-            self._handle_new_user(event.user_id)
             self.send_message(
                 event.user_id,
                 MESSAGES["start"]
             )
+            # Вывожу данные по юзеру в консоль (для дебага)
+            # Принт сработает только после выполнения команды start
+            print(self.received_profile_info.get_profile_info(event.user_id))
         elif request in COMMANDS["hello"]:
             self.send_message(
                 event.user_id,
