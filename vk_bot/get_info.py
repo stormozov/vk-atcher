@@ -43,7 +43,7 @@ class UserInfoRetriever:
                     "access_token": self.TOKEN,
                     "v": self.vk_api_version,
                     "owner_id": user_id,
-                    "album_id": "wall",
+                    "album_id": "profile",
                     "extended": 1,
                     "photo_sizes": 0
                 }
@@ -83,12 +83,13 @@ class UserInfoRetriever:
             has_photo: int = 1
     ) -> list[dict]:
         params_from_db = get_user_params(user_id, self.session)
+
         if params_from_db:
             city_id = params_from_db.get("city_id", 1)
             sex = params_from_db.get("sex", 1)
         else:
-            city_id = 1
-            sex = 1
+            city_id, sex = 1, 1
+
         try:
             params = {
                 "access_token": self.TOKEN,
@@ -102,15 +103,33 @@ class UserInfoRetriever:
                 "has_photo": has_photo,
                 "fields": "city, bdate"
             }
-            response_1 = requests.get(f"{self.URL}users.search", params)
-            users_1 = response_1.json()["response"]["items"]
-            for item in users_1:
-                item[0]['url'] = self.get_user_url(users_1[0].get('id'))
-                found_user_id = users_1[0].get('id')
-                item[0]['photo_url1'] = self.get_user_photos(found_user_id)[0]
-                item[0]['photo_url2'] = self.get_user_photos(found_user_id)[1]
-                item[0]['photo_url3'] = self.get_user_photos(found_user_id)[2]
-                return item
+            response = requests.get(f"{self.URL}users.search", params)
+            users: list[dict] = response.json()["response"]["items"]
+
+            for item in users:
+                found_user_id: int = item.get("id")
+                user_photos: list = self.get_user_photos(found_user_id)
+
+                item["url"] = self.get_user_url(item.get("id"))
+
+                if user_photos:
+                    item["photo_url1"] = (
+                        user_photos[0]
+                        if user_photos
+                        else None
+                    )
+                    item["photo_url2"] = (
+                        user_photos[1]
+                        if len(user_photos) > 1
+                        else None
+                    )
+                    item["photo_url3"] = (
+                        user_photos[2]
+                        if len(user_photos) > 2
+                        else None
+                    )
+
+            return users
         except requests.exceptions.RequestException:
             return []
 

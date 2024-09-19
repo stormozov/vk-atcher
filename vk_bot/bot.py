@@ -5,9 +5,16 @@ from sqlalchemy.orm import sessionmaker
 
 from settings import COMMANDS, MESSAGES
 from vk_bot import UserInfoRetriever, UserVK
-from database.base_funcs import add_bot_user_to_db,add_match_user_to_db, get_user_params, Session
+from database.base_funcs import (
+    add_bot_user_to_db,
+    add_match_user_to_db,
+    get_user_params,
+    Session
+)
 
 session = Session()
+
+
 class VKBot:
     def __init__(self, group_token: str, db_session: Session) -> None:
         self.user_id = None
@@ -53,13 +60,12 @@ class VKBot:
             print(add_bot_user_to_db(data))
             print(event.user_id)
             print(get_user_params(event.user_id, session))
-            print(self.received_profile_info.search_users(event.user_id))
+            # print(self.received_profile_info.search_users(event.user_id))
             # Загружаю мэтч в БД
             match = self.received_profile_info.search_users(event.user_id)
+            print("ВЫВОД МАТЧЕЙ")
+            # print(match)
             print(add_match_user_to_db(match, event.user_id))
-
-
-
         elif request in COMMANDS["hello"]:
             self.send_message(
                 event.user_id,
