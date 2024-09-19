@@ -4,15 +4,17 @@ import random
 
 import requests
 from dotenv import load_dotenv
+from database.base_funcs import get_user_params, Session
 
 load_dotenv()
 
 
 class UserInfoRetriever:
-    def __init__(self) -> None:
+    def __init__(self, db_session: Session) -> None:
         self.URL = "https://api.vk.com/method/"
         self.TOKEN = os.getenv("VK_TOKEN")
         self.vk_api_version = 5.199
+        self.session = db_session
 
     def get_profile_info(self, user_id: int) -> dict[str, str | int] | None:
         try:
@@ -41,7 +43,7 @@ class UserInfoRetriever:
                     "access_token": self.TOKEN,
                     "v": self.vk_api_version,
                     "owner_id": user_id,
-                    "album_id": "profile",
+                    "album_id": "wall",
                     "extended": 1,
                     "photo_sizes": 0
                 }
@@ -73,14 +75,20 @@ class UserInfoRetriever:
 
     def search_users(
             self,
-            count: int = 12,
+            user_id: int,
+            count: int = 5,
             age_from: int = 18,
             age_to: int = 50,
-            city_id: int = 1,
-            sex: int = 1,
             status: int = 6,
             has_photo: int = 1
     ) -> list[dict]:
+        params_from_db = get_user_params(user_id, self.session)
+        if params_from_db:
+            city_id = params_from_db.get("city_id", 1)
+            sex = params_from_db.get("sex", 1)
+        else:
+            city_id = 1
+            sex = 1
         try:
             params = {
                 "access_token": self.TOKEN,
@@ -94,9 +102,15 @@ class UserInfoRetriever:
                 "has_photo": has_photo,
                 "fields": "city, bdate"
             }
-            response = requests.get(f"{self.URL}users.search", params)
-
-            return response.json()["response"]["items"]
+            response_1 = requests.get(f"{self.URL}users.search", params)
+            users_1 = response_1.json()["response"]["items"]
+            for item in users_1:
+                item[0]['url'] = self.get_user_url(users_1[0].get('id'))
+                found_user_id = users_1[0].get('id')
+                item[0]['photo_url1'] = self.get_user_photos(found_user_id)[0]
+                item[0]['photo_url2'] = self.get_user_photos(found_user_id)[1]
+                item[0]['photo_url3'] = self.get_user_photos(found_user_id)[2]
+                return item
         except requests.exceptions.RequestException:
             return []
 
