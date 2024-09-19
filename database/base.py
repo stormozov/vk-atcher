@@ -3,11 +3,17 @@ from dotenv import load_dotenv
 import sqlalchemy as sq
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy.exc import SQLAlchemyError
 
+# Загрузка переменных окружения из файла .env
 load_dotenv()
 DSN = os.getenv('DSN')
+
+# Создание базового класса для декларативного стиля
 Base = declarative_base()
+
+# Создание двигателя и сессии для работы с базой данных
+engine = create_engine(DSN)
+Session = sessionmaker(bind=engine)
 
 
 class Users(Base):
@@ -17,14 +23,16 @@ class Users(Base):
     vk_id = sq.Column(sq.Integer, nullable=False, unique=True)
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
-
-    age = sq.Column(sq.Integer)
     gender = sq.Column(sq.String)
     city = sq.Column(sq.String)
 
-    matches = relationship("Matches", back_populates="user", cascade="all, delete-orphan")
-    favorites = relationship("Favorites", back_populates="user", cascade="all, delete-orphan")
-    blacklist = relationship("BlackList", back_populates="user", cascade="all, delete-orphan")
+    # Определение отношений
+    matches = relationship("Matches",
+                           back_populates="user", cascade="all, delete-orphan")
+    favorites = relationship("Favorites",
+                             back_populates="user", cascade="all, delete-orphan")
+    blacklist = relationship("BlackList",
+                             back_populates="user", cascade="all, delete-orphan")
 
 
 class Matches(Base):
@@ -36,11 +44,11 @@ class Matches(Base):
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
     profile_link = sq.Column(sq.String, nullable=False)
-
     photo_url_1 = sq.Column(sq.String)
     photo_url_2 = sq.Column(sq.String)
     photo_url_3 = sq.Column(sq.String)
 
+    # Определение отношений
     user = relationship("Users", back_populates="matches")
 
 
@@ -54,6 +62,7 @@ class Favorites(Base):
     last_name = sq.Column(sq.String, nullable=False)
     profile_link = sq.Column(sq.String, nullable=False)
 
+    # Определение отношений
     user = relationship("Users", back_populates="favorites")
 
 
@@ -66,15 +75,16 @@ class BlackList(Base):
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
 
+    # Определение отношений
     user = relationship("Users", back_populates="blacklist")
 
 
-def add_to_blacklist(user_id, blocked_vk_id, first_name, last_name, session):
-    """Добавляет пользователя в черный список"""
-    existing_blacklist_entry = session.query(BlackList).filter_by(user_id=user_id, blocked_vk_id=blocked_vk_id).first()
+def add_to_blacklist(user_id: int, blocked_vk_id: int, first_name: str, last_name: str, session: Session) -> None:
+    existing_blacklist_entry = (
+        session.query(BlackList).filter_by(user_id=user_id, blocked_vk_id=blocked_vk_id).first())
 
     if existing_blacklist_entry:
-        return True
+        return
 
     new_blacklist_entry = BlackList(
         user_id=user_id,
@@ -88,12 +98,37 @@ def add_to_blacklist(user_id, blocked_vk_id, first_name, last_name, session):
     print(f"Пользователь {first_name} {last_name} добавлен в черный список.")
 
 
-try:
-    engine = create_engine(DSN)
+def create_tables() -> None:
     Base.metadata.create_all(engine)
-    print("Таблицы успешно созданы.")
-except SQLAlchemyError as e:
-    print(f"Произошла ошибка при создании таблиц: {e}")
+    print("Таблицы успешно созданы")
 
-Session = sessionmaker(bind=engine)
-session = Session()
+
+if __name__ == "__main__":
+    create_tables()
+
+# def drop_tables_with_cascade(engine):
+#     with engine.connect() as conn:
+#         # Начало транзакции
+#         trans = conn.begin()
+#         try:
+#             # Удаление таблиц с каскадом
+#             conn.execute(text("DROP TABLE IF EXISTS blacklist CASCADE;"))
+#             conn.execute(text("DROP TABLE IF EXISTS favorites CASCADE;"))
+#             conn.execute(text("DROP TABLE IF EXISTS matches CASCADE;"))
+#             conn.execute(text("DROP TABLE IF EXISTS users CASCADE;"))
+#             conn.execute(text("DROP TABLE IF EXISTS user_words CASCADE;"))
+#             conn.execute(text("DROP TABLE IF EXISTS words CASCADE;"))
+#             # Подтверждение изменений
+#             trans.commit()
+#             print("Таблицы удалены.")
+#         except Exception as e:
+#             # Откат транзакции в случае ошибки
+#             trans.rollback()
+#             print(f"Ошибка при удалении таблиц: {e}")
+#
+# def create_tables():
+#     drop_tables_with_cascade(engine)
+#     # Base.metadata.create_all(engine)
+#
+# if __name__ == "__main__":
+#     create_tables()
