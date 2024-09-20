@@ -82,6 +82,19 @@ class UserInfoRetriever:
             status: int = 6,
             has_photo: int = 1
     ) -> list[dict]:
+        city_id, sex = self._get_user_city_id_and_sex(user_id)
+
+        return self._process_users_with_photos_and_url(
+            count,
+            age_from,
+            age_to,
+            city_id,
+            sex,
+            status,
+            has_photo
+        )
+
+    def _get_user_city_id_and_sex(self, user_id: int) -> tuple[int, int]:
         params_from_db = get_user_params(user_id, self.session)
 
         if params_from_db:
@@ -90,48 +103,70 @@ class UserInfoRetriever:
         else:
             city_id, sex = 1, 1
 
+        return city_id, sex
+
+    def _process_users_with_photos_and_url(
+            self,
+            count: int,
+            age_from: int,
+            age_to: int,
+            city_id: int,
+            sex: int,
+            status: int,
+            has_photo: int
+    ) -> list[dict]:
         try:
-            params = {
-                "access_token": self.TOKEN,
-                "v": self.vk_api_version,
-                "count": count,
-                "age_from": age_from,
-                "age_to": age_to,
-                "city_id": city_id,
-                "sex": 2 if sex == 1 else 1,
-                "status": status,
-                "has_photo": has_photo,
-                "fields": "city, bdate"
-            }
-            response = requests.get(f"{self.URL}users.search", params)
-            users: list[dict] = response.json()["response"]["items"]
-
-            for item in users:
-                found_user_id: int = item.get("id")
-                user_photos: list = self.get_user_photos(found_user_id)
-
-                item["url"] = self.get_user_url(item.get("id"))
-
-                if user_photos:
-                    item["photo_url1"] = (
-                        user_photos[0]
-                        if user_photos
-                        else None
-                    )
-                    item["photo_url2"] = (
-                        user_photos[1]
-                        if len(user_photos) > 1
-                        else None
-                    )
-                    item["photo_url3"] = (
-                        user_photos[2]
-                        if len(user_photos) > 2
-                        else None
-                    )
-
-            return users
+            users = self._fetch_users_from_search(
+                count,
+                age_from,
+                age_to,
+                city_id,
+                sex,
+                status,
+                has_photo
+            )
+            return self._add_user_photos_and_url(users)
         except requests.exceptions.RequestException:
             return []
 
-    def save_received_users(self):
-        pass
+    def _fetch_users_from_search(
+            self,
+            count: int,
+            age_from: int,
+            age_to: int,
+            city_id: int,
+            sex: int,
+            status: int,
+            has_photo: int
+    ) -> list[dict[str, int | str]]:
+        params = {
+            "access_token": self.TOKEN,
+            "v": self.vk_api_version,
+            "count": count,
+            "age_from": age_from,
+            "age_to": age_to,
+            "city_id": city_id,
+            "sex": 2 if sex == 1 else 1,
+            "status": status,
+            "has_photo": has_photo,
+            "fields": "city, bdate"
+        }
+        response = requests.get(f"{self.URL}users.search", params)
+
+        return response.json()["response"]["items"]
+
+    def _add_user_photos_and_url(self, users: list[dict]) -> list[dict]:
+        for item in users:
+            found_user_id: int = item.get("id")
+            user_photos: list[dict] = self.get_user_photos(found_user_id)
+
+            item["url"] = self.get_user_url(item.get("id"))
+
+            if user_photos:
+                for i in range(3):
+                    item[f"photo_url{i + 1}"] = (
+                        user_photos[i]
+                        if i < len(user_photos)
+                        else None
+                    )
+        return users
