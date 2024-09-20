@@ -8,5 +8,6 @@ alternative command names.
 COMMANDS = {
     "start": ("начать", "старт", "start", "запуск"),
     "hello": ("привет", "hello"),
-    "goodbye": ("пока", "goodbye")
+    "goodbye": ("пока", "goodbye"),
+    "next": ("next", "следующий", "следующие", "дальше"),
 }

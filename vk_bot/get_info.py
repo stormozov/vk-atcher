@@ -80,7 +80,8 @@ class UserInfoRetriever:
             age_from: int = 18,
             age_to: int = 50,
             status: int = 6,
-            has_photo: int = 1
+            has_photo: int = 1,
+            offset: int = 0
     ) -> list[dict]:
         city_id, sex = self._get_user_city_id_and_sex(user_id)
 
@@ -91,7 +92,8 @@ class UserInfoRetriever:
             city_id,
             sex,
             status,
-            has_photo
+            has_photo,
+            offset
         )
 
     def _get_user_city_id_and_sex(self, user_id: int) -> tuple[int, int]:
@@ -113,7 +115,8 @@ class UserInfoRetriever:
             city_id: int,
             sex: int,
             status: int,
-            has_photo: int
+            has_photo: int,
+            offset: int
     ) -> list[dict]:
         try:
             users = self._fetch_users_from_search(
@@ -123,7 +126,8 @@ class UserInfoRetriever:
                 city_id,
                 sex,
                 status,
-                has_photo
+                has_photo,
+                offset
             )
             return self._add_user_photos_and_url(users)
         except requests.exceptions.RequestException:
@@ -137,7 +141,8 @@ class UserInfoRetriever:
             city_id: int,
             sex: int,
             status: int,
-            has_photo: int
+            has_photo: int,
+            offset: int
     ) -> list[dict[str, int | str]]:
         params = {
             "access_token": self.TOKEN,
@@ -149,7 +154,8 @@ class UserInfoRetriever:
             "sex": 2 if sex == 1 else 1,
             "status": status,
             "has_photo": has_photo,
-            "fields": "city, bdate"
+            "fields": "city, bdate",
+            "offset": offset
         }
         response = requests.get(f"{self.URL}users.search", params)
 
