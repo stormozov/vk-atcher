@@ -3,7 +3,7 @@ import vk_api
 from vk_api.longpoll import VkEventType, VkLongPoll
 from sqlalchemy.orm import sessionmaker
 
-from settings import COMMANDS, MESSAGES
+from settings import COMMANDS, MESSAGES, KEYBOARDS
 from vk_bot import UserInfoRetriever, UserVK
 from database.base_funcs import (
     add_bot_user_to_db,
@@ -11,6 +11,7 @@ from database.base_funcs import (
     get_user_params,
     Session
 )
+from vk_bot.keyboard import VKKeyboard
 from vk_bot.search_paginator import Paginator
 
 session = Session()
@@ -24,18 +25,33 @@ class VKBot:
         self.longpoll = VkLongPoll(self.vk)
         self.received_profile_info = UserInfoRetriever(db_session)
         self.user_info = UserVK()
+        self.keyboard = VKKeyboard()
         # Инициализация пагинатора поиска пользователей
         self.paginator = Paginator(self.received_profile_info)
         # Инициализация счетчика команды "next"
         self.next_command_count = 0
 
-    def send_message(self, user_id: int, msg: str) -> None:
+    def send_message(
+        self,
+        user_id: int,
+        msg: str,
+        btns: list[tuple[str, str]] | None = None,
+        one_time: bool = False,
+        inline: bool = False
+    ) -> None:
+        keyboard_json: str | None = (
+            self.keyboard.build_keyboard(btns, one_time, inline)
+            if btns
+            else None
+        )
+
         self.vk.method(
             "messages.send",
             {
                 "user_id": user_id,
                 "message": msg,
-                "random_id": 0
+                "random_id": 0,
+                "keyboard": keyboard_json
             }
         )
 
@@ -54,7 +70,9 @@ class VKBot:
         if request in COMMANDS["start"]:
             self.send_message(
                 self.user_id,
-                MESSAGES["start"]
+                MESSAGES["start"],
+                btns=KEYBOARDS["start"]["btns"],
+                one_time=KEYBOARDS["start"]["one_time"]
             )
             # Вывожу данные по юзеру в консоль (для дебага)
             # Принт сработает только после выполнения команды start
@@ -71,6 +89,17 @@ class VKBot:
             print("ВЫВОД МАТЧЕЙ")
             # print(match)
             print(add_match_user_to_db(match, self.user_id))
+        elif request in COMMANDS["searching"]:
+            # Обрабатываем команду "searching" и выводим сообщение для теста
+            self.send_message(
+                self.user_id,
+                "Начинаю поиск",
+                btns=[
+                    ("Начать поиск", "primary"),
+                    ("Продолжить поиск", "secondary")
+                ],
+                one_time=True
+            )
         elif request in COMMANDS["hello"]:
             self.send_message(
                 self.user_id,
