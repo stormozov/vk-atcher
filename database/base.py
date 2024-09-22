@@ -2,16 +2,14 @@ import os
 from dotenv import load_dotenv
 import sqlalchemy as sq
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy import create_engine, ForeignKey
+from sqlalchemy import create_engine, ForeignKey, text
 
-# Загрузка переменных окружения из файла .env
+
 load_dotenv()
 DSN = os.getenv('DSN')
 
-# Создание базового класса для декларативного стиля
 Base = declarative_base()
 
-# Создание двигателя и сессии для работы с базой данных
 engine = create_engine(DSN)
 Session = sessionmaker(bind=engine)
 
@@ -26,7 +24,6 @@ class Users(Base):
     gender = sq.Column(sq.String)
     city = sq.Column(sq.String)
 
-    # Определение отношений
     matches = relationship("Matches",
                            back_populates="user", cascade="all, delete-orphan")
     favorites = relationship("Favorites",
@@ -44,11 +41,10 @@ class Matches(Base):
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
     profile_link = sq.Column(sq.String, nullable=False)
-    photo_url_1 = sq.Column(sq.String)
-    photo_url_2 = sq.Column(sq.String)
-    photo_url_3 = sq.Column(sq.String)
+    photo_id_1 = sq.Column(sq.String)
+    photo_id_2 = sq.Column(sq.String)
+    photo_id_3 = sq.Column(sq.String)
 
-    # Определение отношений
     user = relationship("Users", back_populates="matches")
 
 
@@ -62,7 +58,6 @@ class Favorites(Base):
     last_name = sq.Column(sq.String, nullable=False)
     profile_link = sq.Column(sq.String, nullable=False)
 
-    # Определение отношений
     user = relationship("Users", back_populates="favorites")
 
 
@@ -75,7 +70,6 @@ class BlackList(Base):
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
 
-    # Определение отношений
     user = relationship("Users", back_populates="blacklist")
 
 
@@ -105,7 +99,7 @@ def create_tables() -> None:
 
 if __name__ == "__main__":
     create_tables()
-
+#
 # def drop_tables_with_cascade(engine):
 #     with engine.connect() as conn:
 #         # Начало транзакции
