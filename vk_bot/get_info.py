@@ -1,6 +1,5 @@
 import os
-import time
-import random
+
 
 import requests
 from dotenv import load_dotenv
@@ -35,7 +34,7 @@ class UserInfoRetriever:
     def get_user_url(user_id: int) -> str:
         return f"https://vk.com/id{user_id}"
 
-    def get_user_photos(self, user_id: int) -> list[dict] | None:
+    def get_user_photos(self, user_id: int) -> list[str] | None:
         try:
             response = requests.get(
                 f"{self.URL}photos.get",
@@ -51,32 +50,32 @@ class UserInfoRetriever:
             data = response.json()
 
             if 'response' in data:
-                photos = data['response']['items']
-                return self._get_best_photos(photos)
+                photos = data['response']
+                return self._get_best_3_photos_id(photos)
         except requests.exceptions.RequestException:
             return None
 
     @staticmethod
-    def _get_best_photos(photos: list[dict], count: int = 3) \
+    def _find_largest_photo(dict_sizes) -> int:
+        if dict_sizes["width"] >= dict_sizes["height"]:
+            return dict_sizes["width"]
+        else:
+            return dict_sizes["height"]
+
+    @staticmethod
+    def _get_best_3_photos_id(photos: dict) \
             -> list[str] | None:
-        if not photos:
-            return None
-
-        sorted_photos: list[dict[str, int]] = sorted(
-            photos,
-            key=lambda x: x['likes']['count'],
-            reverse=True
-        )
-
-        return [
-            photo["sizes"][-1]["url"]
-            for photo in sorted_photos[:count]
-        ]
+        dict_ = {}
+        for photo in photos['items']:
+            largest = max(photo['sizes'], key=UserInfoRetriever._find_largest_photo)
+            dict_[str(photo['id'])] = largest['url']
+        sorted_tuples = sorted(dict_.items(), key=lambda item: item[1])[-3:]
+        return [id_ for id_ in {k: v for k, v in sorted_tuples}.keys()]
 
     def search_users(
             self,
             user_id: int,
-            count: int = 5,
+            count: int = 3,
             age_from: int = 18,
             age_to: int = 50,
             status: int = 6,
@@ -164,13 +163,15 @@ class UserInfoRetriever:
     def _add_user_photos_and_url(self, users: list[dict]) -> list[dict]:
         for item in users:
             found_user_id: int = item.get("id")
-            user_photos: list[dict] = self.get_user_photos(found_user_id)
+            print(found_user_id)
+            user_photos: list[str] = self.get_user_photos(found_user_id)
+            print(user_photos)
 
             item["url"] = self.get_user_url(item.get("id"))
 
             if user_photos:
                 for i in range(3):
-                    item[f"photo_url{i + 1}"] = (
+                    item[f"photo_id{i + 1}"] = (
                         user_photos[i]
                         if i < len(user_photos)
                         else None
