@@ -26,9 +26,9 @@ class VKBot:
         self.found_user_id = None
         # Инициализация пагинатора поиска пользователей
         self.paginator = Paginator(self.received_profile_info)
-        # Инициализация счетчика команды "next"
+        # Инициализация счётчиков команд
         self.next_command_count = 0
-        self.count = 0
+        self.match_info_count = 0
 
     def send_message(self, user_id: int, msg: str) -> None:
         self.vk.method(
@@ -76,30 +76,30 @@ class VKBot:
     def get_user_id(self) -> int:
         return self.user_id
 
-    def _handle_user_request(self, request: str) \
-            -> None:
+    def _handle_user_request(self, request: str) -> None:
         if request in COMMANDS["start"]:
             self.send_message(
                 self.user_id,
                 MESSAGES["start"]
             )
-            # Вывожу данные по юзеру в консоль (для дебага)
-            # Принт сработает только после выполнения команды start
-            # Тесты получения инфо
+            #: Получаю информацию о пользователе,
+            #: который взаимодействует с ботом
             data = self.received_profile_info.get_profile_info(self.user_id)
-            print(data)
-            print(self.received_profile_info.get_user_photos(self.found_user_id))
-            # # # Пробую загрузить данные пользователя для поиска мэтчей из базы данных
-            # print(add_bot_user_to_db(data))
+            #: Вывожу полученные данные о пользователе в консоль (для отладки)
+            # print(data)
+            # print(self.received_profile_info.get_user_photos(self.found_user_id))
+            #: Загружаю данные пользователя в БД
+            add_bot_user_to_db(data)
             # print(get_user_params(self.user_id, session))
 
-            # # # Загружаю мэтч в БД
-            # match = self.received_profile_info.search_users(self.user_id)
+            # Делаю поиск подходящих пользователей для мэтчей.
+            match = self.received_profile_info.search_users(self.user_id)
             # print(self.received_profile_info._add_user_photos_and_url(match))
-            # # print("ВЫВОД МАТЧЕЙ")
+            #: (для отладки) Вывожу полученные в ходе поиска данные
+            # пользователей
             # print(match)
-            # print(add_match_user_to_db(match, self.user_id))
-            # print(get_pic_ids(match,session))
+            #: Загружаю данные найденных подходящих пользователей в БД
+            add_match_user_to_db(match, self.user_id)
 
         elif request in COMMANDS["hello"]:
             self.send_message(
@@ -108,28 +108,37 @@ class VKBot:
             )
             self.send_match_info(self.user_id)
         elif request in COMMANDS["goodbye"]:
-            self.count += 1
             self.send_message(self.user_id, MESSAGES["goodbye"])
-            self.send_match_info(self.user_id, count=self.count)
-
+        elif request in COMMANDS["show"]:
+            # Обработка введенной команды пользователем "показать, show".
+            # При вводе этой команды бот высылает информацию о мэтче по одной
+            # и увеличивает счетчик match_info_count на единицу.
+            # Счетчик match_info_count нужен для того, чтобы бот высылал
+            # один новый мэтч с каждой итерацией.
+            self.send_match_info(self.user_id, count=self.match_info_count)
+            self.match_info_count += 1
         elif request in COMMANDS["next"]:
-            print("ПАГИНАТОР ПОИСКА")  # Для дебага
-            self.next_command_count += 1  # Увеличиваем счетчик команды "next"
-            print("Счетчик команды:", self.next_command_count)  # Для дебага
+            # Обработка введенной команды пользователем "следующий, next".
+            # При вводе этой команды бот высылает информацию о мэтче по одной
+            # и увеличивает счетчик match_info_count на единицу.
+            # А также увеличивает счетчик next_command_count на единицу.
+            self.send_match_info(self.user_id, count=self.match_info_count)
+            self.match_info_count += 1
 
-            if self.next_command_count == 4:
-                # Если счетчик команды "next" равен 4,
-                # то добавляем новый матч в базу данных
+            print("ПАГИНАТОР ПОИСКА")  # Для отладки
+            self.next_command_count += 1  # Увеличиваем счетчик команды "next"
+            print("Счетчик команды:", self.next_command_count)  # Для отладки
+
+            if self.next_command_count == 2:
+                # Если счетчик команды "next" равен 2,
+                # то добавляем новый мэтч в базу данных
                 match = self.paginator.next(self.user_id)
                 add_match_user_to_db(match, self.user_id)
 
-            if self.next_command_count == 5:
-                # Если счетчик команды "next" равен 5,
-                # то выводим пока что только сообщение и сбрасываем счетчик
-                self.send_message(
-                    self.user_id,
-                    "Следующие 5 пользователей"
-                )
+            if self.next_command_count == 3:
+                # Если счетчик команды "next" равен 3,
+                # то обнуляем счетчик "next_command_count" команды "next"
+                # и начинаем отсчет счетчика команды "next" с 0
                 self.next_command_count = 0
         else:
             self.send_message(
