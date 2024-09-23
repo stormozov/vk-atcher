@@ -103,7 +103,7 @@ def add_match_user_to_db(data_list: list[dict], f_user_id) -> None:
 
 def get_user_params(user_id, session: Session):
     try:
-        user = session.query(Users).filter_by(user_id=user_id).first()
+        user = session.query(Users).filter_by(vk_id=user_id).first()
         if user:
             return {
                 "city_id": user.city,
