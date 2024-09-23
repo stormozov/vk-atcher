@@ -1,7 +1,7 @@
 import vk_api
 from vk_api.longpoll import VkEventType, VkLongPoll
 
-from settings import COMMANDS, MESSAGES
+from settings import COMMANDS, KEYBOARDS, MESSAGES
 from vk_bot import UserInfoRetriever, UserVK
 from database.base_funcs import (
     add_bot_user_to_db,
@@ -10,6 +10,7 @@ from database.base_funcs import (
     get_match_info_to_print,
     Session
 )
+from vk_bot.keyboard import VKKeyboard
 from vk_bot.search_paginator import Paginator
 
 session = Session()
@@ -23,6 +24,7 @@ class VKBot:
         self.longpoll = VkLongPoll(self.vk)
         self.received_profile_info = UserInfoRetriever(db_session)
         self.user_info = UserVK()
+        self.keyboard = VKKeyboard()
         self.found_user_id = None
         # Инициализация пагинатора поиска пользователей
         self.paginator = Paginator(self.received_profile_info)
@@ -30,13 +32,24 @@ class VKBot:
         self.next_command_count = 0
         self.match_info_count = 0
 
-    def send_message(self, user_id: int, msg: str) -> None:
+    def send_message(
+            self,
+            user_id: int,
+            msg: str,
+            btns: list[tuple[str, str]] = None,
+            one_time: bool = True,
+            inline: bool = False
+    ) -> None:
+        keyboard_json: str | None = (
+            self.keyboard.create_markup(btns, one_time, inline))
+
         self.vk.method(
             "messages.send",
             {
                 "user_id": user_id,
                 "message": msg,
-                "random_id": 0
+                "random_id": 0,
+                "keyboard": keyboard_json
             }
         )
 
@@ -80,7 +93,8 @@ class VKBot:
         if request in COMMANDS["start"]:
             self.send_message(
                 self.user_id,
-                MESSAGES["start"]
+                MESSAGES["start"],
+                KEYBOARDS["start"]["btns"]
             )
             #: Получаю информацию о пользователе,
             #: который взаимодействует с ботом
@@ -100,7 +114,6 @@ class VKBot:
             # print(match)
             #: Загружаю данные найденных подходящих пользователей в БД
             add_match_user_to_db(match, self.user_id)
-
         elif request in COMMANDS["hello"]:
             self.send_message(
                 self.user_id,
@@ -117,6 +130,10 @@ class VKBot:
             # один новый мэтч с каждой итерацией.
             self.send_match_info(self.user_id, count=self.match_info_count)
             self.match_info_count += 1
+            # Тут показываем пользователю клавиатуру для выбора действия
+            # над полученным мэтчем
+            self.send_message(
+                self.user_id, "Выберите действие:", KEYBOARDS["card"]["btns"])
         elif request in COMMANDS["next"]:
             # Обработка введенной команды пользователем "следующий, next".
             # При вводе этой команды бот высылает информацию о мэтче по одной
@@ -124,6 +141,10 @@ class VKBot:
             # А также увеличивает счетчик next_command_count на единицу.
             self.send_match_info(self.user_id, count=self.match_info_count)
             self.match_info_count += 1
+            # Тут показываем пользователю клавиатуру для выбора действия
+            # над полученным мэтчем
+            self.send_message(
+                self.user_id, "Выберите действие:", KEYBOARDS["card"]["btns"])
 
             print("ПАГИНАТОР ПОИСКА")  # Для отладки
             self.next_command_count += 1  # Увеличиваем счетчик команды "next"

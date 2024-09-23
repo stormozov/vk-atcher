@@ -2,7 +2,13 @@ KEYBOARDS = {
 	"start": {
 		"btns": [
 			("Начать поиск", "primary")
-		],
-		"one_time": True
+		]
+	},
+	"card": {
+		"btns": [
+			("👍", "positive"),
+			("👎", "secondary"),
+			("❌", "negative")
+		]
 	}
 }

@@ -3,7 +3,7 @@ from vk_api.keyboard import VkKeyboard
 
 class VKKeyboard:
     @staticmethod
-    def create_keyboard_layout(
+    def _create_layout(
             btns: list[tuple[str, str]],
             one_time: bool = False,
             inline: bool = False
@@ -22,11 +22,14 @@ class VKKeyboard:
 
         return keyboard
 
-    def create_keyboard_markup(
+    def create_markup(
             self,
-            btns: list[tuple[str, str]],
-            one_time: bool = False,
+            btns: list[tuple[str, str]] | None = None,
+            one_time: bool = True,
             inline: bool = False
     ) -> str | None:
-        keyboard = self.create_keyboard_layout(btns, one_time, inline)
+        if not btns:
+            return None
+
+        keyboard = self._create_layout(btns, one_time, inline)
         return keyboard.get_keyboard()
