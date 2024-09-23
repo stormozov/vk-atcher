@@ -36,12 +36,9 @@ class VKBot:
             self,
             user_id: int,
             msg: str,
-            btns: list[tuple[str, str]] = None,
-            one_time: bool = True,
-            inline: bool = False
+            btns: dict[str, list[tuple[str, str]] | bool] | None = None
     ) -> None:
-        keyboard_json: str | None = (
-            self.keyboard.create_markup(btns, one_time, inline))
+        keyboard_json: str | None = self.keyboard.create_markup(btns)
 
         self.vk.method(
             "messages.send",
@@ -58,13 +55,9 @@ class VKBot:
             vk_user_id: int,
             attachment: str = None,
             count: int = 0,
-            btns: list[tuple[str, str]] = None,
-            one_time: bool = True,
-            inline: bool = False
+            btns: dict[str, list[tuple[str, str]] | bool] | None = None
     ) -> None:
-        keyboard_json: str | None = (
-            self.keyboard.create_markup(btns, one_time, inline))
-
+        keyboard_json: str | None = self.keyboard.create_markup(btns)
         match_info = match_data_layout(vk_user_id)
 
         if 0 <= count < len(match_info):
@@ -100,7 +93,7 @@ class VKBot:
             self.send_message(
                 self.user_id,
                 MESSAGES["start"],
-                KEYBOARDS["start"]["btns"]
+                KEYBOARDS["start"]
             )
             #: Получаю информацию о пользователе,
             #: который взаимодействует с ботом
@@ -137,7 +130,7 @@ class VKBot:
             self.send_match_info(
                 self.user_id,
                 count=self.match_info_count,
-                btns=KEYBOARDS["card"]["btns"]
+                btns=KEYBOARDS["card"]
             )
             self.match_info_count += 1
         elif request in COMMANDS["next"]:
@@ -148,7 +141,7 @@ class VKBot:
             self.send_match_info(
                 self.user_id,
                 count=self.match_info_count,
-                btns=KEYBOARDS["card"]["btns"]
+                btns=KEYBOARDS["card"]
             )
             self.match_info_count += 1
 
