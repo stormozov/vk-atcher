@@ -57,26 +57,32 @@ class VKBot:
             self,
             vk_user_id: int,
             attachment: str = None,
-            count: int = 0
+            count: int = 0,
+            btns: list[tuple[str, str]] = None,
+            one_time: bool = True,
+            inline: bool = False
     ) -> None:
+        keyboard_json: str | None = (
+            self.keyboard.create_markup(btns, one_time, inline))
 
-        info_to_send = match_data_layout(vk_user_id)
+        match_info = match_data_layout(vk_user_id)
 
-        if 0 <= count < len(info_to_send):
-            message = info_to_send[count][0]  # Имя пользователя
-            url = info_to_send[count][1]  # Ссылка на профиль
-            photos = info_to_send[count][2]  # Фото пользователя
+        if 0 <= count < len(match_info):
+            username = match_info[count][0]  # Имя пользователя
+            profile_url = match_info[count][1]  # Ссылка на профиль
+            user_photos = match_info[count][2]  # Фото пользователя
 
-            message_text = f'{message}\n{url}'
+            user_info_text = f'{username}\n{profile_url}'
 
-            if photos:
-                attachment = ','.join(photos)
+            if user_photos:
+                attachment = ','.join(user_photos)
 
             self.vk.method('messages.send', {
                 'user_id': vk_user_id,
-                'message': message_text,
+                'message': user_info_text,
                 'random_id': 0,
-                'attachment': attachment
+                'attachment': attachment,
+                'keyboard': keyboard_json
             })
 
     def start(self) -> None:
@@ -128,23 +134,23 @@ class VKBot:
             # и увеличивает счетчик match_info_count на единицу.
             # Счетчик match_info_count нужен для того, чтобы бот высылал
             # один новый мэтч с каждой итерацией.
-            self.send_match_info(self.user_id, count=self.match_info_count)
+            self.send_match_info(
+                self.user_id,
+                count=self.match_info_count,
+                btns=KEYBOARDS["card"]["btns"]
+            )
             self.match_info_count += 1
-            # Тут показываем пользователю клавиатуру для выбора действия
-            # над полученным мэтчем
-            self.send_message(
-                self.user_id, "Выберите действие:", KEYBOARDS["card"]["btns"])
         elif request in COMMANDS["next"]:
             # Обработка введенной команды пользователем "следующий, next".
             # При вводе этой команды бот высылает информацию о мэтче по одной
             # и увеличивает счетчик match_info_count на единицу.
             # А также увеличивает счетчик next_command_count на единицу.
-            self.send_match_info(self.user_id, count=self.match_info_count)
+            self.send_match_info(
+                self.user_id,
+                count=self.match_info_count,
+                btns=KEYBOARDS["card"]["btns"]
+            )
             self.match_info_count += 1
-            # Тут показываем пользователю клавиатуру для выбора действия
-            # над полученным мэтчем
-            self.send_message(
-                self.user_id, "Выберите действие:", KEYBOARDS["card"]["btns"])
 
             print("ПАГИНАТОР ПОИСКА")  # Для отладки
             self.next_command_count += 1  # Увеличиваем счетчик команды "next"
