@@ -67,7 +67,7 @@ class VKBot:
         if 0 <= count < len(match_info):
             username = match_info[count][0]  # Имя пользователя
             profile_url = match_info[count][1]  # Ссылка на профиль
-            user_photos = match_info[count][2]  # Фото пользователя
+            user_photos = match_info[count][3]  # Фото пользователя
 
             user_info_text = f'{username}\n{profile_url}'
 

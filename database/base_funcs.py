@@ -160,9 +160,11 @@ def match_data_layout(f_user_id: int) -> list:
             match_info_list = []
             match_mess_info = f'{result["first_name"]} {result["last_name"]}'
             match_url_info = result["profile_link"]
+            match_vk_id = result["vk_id"]
 
             match_info_list.append(match_mess_info)
             match_info_list.append(match_url_info)
+            match_info_list.append(match_vk_id)
 
             photos = []
             if result.get("photo_id_1"):
@@ -182,38 +184,39 @@ def match_data_layout(f_user_id: int) -> list:
     return all_match_info_list
 
 
-def extract_vk_id_from_link(link: str, pattern: str = r"id(\d+)") -> int | None:
-    match = re.search(pattern, link)
-
-    return int(match.group(1)) if match else None
-
-
-def add_match_to_favorites(
-        user_id: int,
-        favorites: list,
-        selected_match: int
-) -> None:
+def get_existing_favorite_entry(user_id: int, favorite_vk_id: int) \
+        -> Favorites | None:
     session = Session()
-    user = session.query(Users).filter_by(vk_id=user_id).first()
-    user_if_from_db: int | None = user.user_id if user else None
-
-    favorite_vk_id = extract_vk_id_from_link(favorites[selected_match][1])
-
-    existing_favorite_entry = (
+    return (
         session
         .query(Favorites)
-        .filter_by(user_id=user_if_from_db, favorite_vk_id=favorite_vk_id)
+        .filter_by(user_id=user_id, favorite_vk_id=favorite_vk_id)
         .first()
     )
 
-    if existing_favorite_entry:
+
+def add_match_to_favorites(
+        user_id: int, favorites: list, selected_match: int
+) -> None:
+    session = Session()
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    favorite_vk_id = favorites[selected_match][2]
+    first_name, last_name = favorites[selected_match][0].split()
+
+    existing_entry = get_existing_favorite_entry(vk_user_id, favorite_vk_id)
+
+    if existing_entry:
         return
 
     new_favorite_entry = Favorites(
-        user_id=user_if_from_db,
+        user_id=vk_user_id,
         favorite_vk_id=favorite_vk_id,
-        first_name=favorites[selected_match][0],
-        last_name=favorites[selected_match][0],
+        first_name=first_name,
+        last_name=last_name,
         profile_link=favorites[selected_match][1]
     )
 
