@@ -62,15 +62,29 @@ class UserInfoRetriever:
         else:
             return dict_sizes["height"]
 
-    @staticmethod
-    def _get_best_3_photos_id(photos: dict) \
-            -> list[str] | None:
-        dict_ = {}
+    def _get_best_3_photos_id(self, photos: dict) -> list[str] | None:
+        if not photos or 'items' not in photos:
+            return None
+
+        photos_dict = {}
+
         for photo in photos['items']:
-            largest = max(photo['sizes'], key=UserInfoRetriever._find_largest_photo)
-            dict_[str(photo['id'])] = largest['url']
-        sorted_tuples = sorted(dict_.items(), key=lambda item: item[1])[-3:]
-        return [id_ for id_ in {k: v for k, v in sorted_tuples}.keys()]
+            largest = max(photo['sizes'], key=self._find_largest_photo)
+            likes = photo['likes']['count']
+
+            if isinstance(likes, int) and isinstance(largest, dict):
+                photo_id = str(photo['id'])
+                photos_dict[photo_id] = (largest['url'], likes)
+
+        if not photos_dict:
+            return None
+
+        sorted_tuples = sorted(
+            photos_dict.items(),
+            key=lambda item: item[1][1],
+            reverse=True
+        )
+        return [id_ for id_, _ in sorted_tuples[:3]]
 
     def search_users(
             self,
