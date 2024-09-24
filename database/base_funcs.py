@@ -1,5 +1,6 @@
 from sqlalchemy.exc import SQLAlchemyError
-from database.base import Users, Matches, Session
+from database.base import Favorites, Users, Matches, Session
+import re
 
 
 def add_bot_user_to_db(data_list: list[dict]) -> None:
@@ -179,3 +180,42 @@ def match_data_layout(f_user_id: int) -> list:
             all_match_info_list.append(match_info_list)
 
     return all_match_info_list
+
+
+def extract_vk_id_from_link(link: str, pattern: str = r"id(\d+)") -> int | None:
+    match = re.search(pattern, link)
+
+    return int(match.group(1)) if match else None
+
+
+def add_match_to_favorites(
+        user_id: int,
+        favorites: list,
+        selected_match: int
+) -> None:
+    session = Session()
+    user = session.query(Users).filter_by(vk_id=user_id).first()
+    user_if_from_db: int | None = user.user_id if user else None
+
+    favorite_vk_id = extract_vk_id_from_link(favorites[selected_match][1])
+
+    existing_favorite_entry = (
+        session
+        .query(Favorites)
+        .filter_by(user_id=user_if_from_db, favorite_vk_id=favorite_vk_id)
+        .first()
+    )
+
+    if existing_favorite_entry:
+        return
+
+    new_favorite_entry = Favorites(
+        user_id=user_if_from_db,
+        favorite_vk_id=favorite_vk_id,
+        first_name=favorites[selected_match][0],
+        last_name=favorites[selected_match][0],
+        profile_link=favorites[selected_match][1]
+    )
+
+    session.add(new_favorite_entry)
+    session.commit()

@@ -1,7 +1,7 @@
 KEYBOARDS = {
 	"start": {
 		"btns": [
-			("Начать поиск", "primary")
+			("Начать поиск", "positive")
 		],
 		"one_time": True,
 		"inline": False
@@ -14,5 +14,13 @@ KEYBOARDS = {
 		],
 		"one_time": True,
 		"inline": False
-	}
+	},
+	"add_to_favorites": {
+		"btns": [
+			("Продолжить поиск", "positive"),
+			("Список избранных", "secondary"),
+		],
+		"one_time": True,
+		"inline": False
+	},
 }

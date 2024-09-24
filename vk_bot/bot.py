@@ -5,6 +5,7 @@ from settings import COMMANDS, KEYBOARDS, MESSAGES
 from vk_bot import UserInfoRetriever, UserVK
 from database.base_funcs import (
     add_bot_user_to_db,
+    add_match_to_favorites,
     match_data_layout,
     add_match_user_to_db,
     get_match_info_to_print,
@@ -31,6 +32,9 @@ class VKBot:
         # Инициализация счётчиков команд
         self.next_command_count = 0
         self.match_info_count = 0
+        # Для хранения полученного актуального списка мэтчей.
+        # Нужен для работы со списком избранных и черным списком.
+        self.current_match_list = None
 
     def send_message(
             self,
@@ -56,7 +60,7 @@ class VKBot:
             attachment: str = None,
             count: int = 0,
             btns: dict[str, list[tuple[str, str]] | bool] | None = None
-    ) -> None:
+    ) -> list:
         keyboard_json: str | None = self.keyboard.create_markup(btns)
         match_info = match_data_layout(vk_user_id)
 
@@ -77,6 +81,8 @@ class VKBot:
                 'attachment': attachment,
                 'keyboard': keyboard_json
             })
+
+        return match_info
 
     def start(self) -> None:
         for event in self.longpoll.listen():
@@ -127,7 +133,7 @@ class VKBot:
             # При вводе этой команды бот высылает по одной информацию о мэтче
             # и увеличивает счетчик match_info_count на единицу.
             # А также увеличивает счетчик next_command_count на единицу.
-            self.send_match_info(
+            self.current_match_list = self.send_match_info(
                 self.user_id,
                 count=self.match_info_count,
                 btns=KEYBOARDS["card"]
@@ -147,6 +153,17 @@ class VKBot:
                 match = self.paginator.next(self.user_id)
                 add_match_user_to_db(match, self.user_id)
                 self.next_command_count = 0
+        elif request in COMMANDS["add_to_favorites"]:
+            add_match_to_favorites(
+                self.user_id,
+                self.current_match_list,
+                self.match_info_count - 1
+            )
+            self.send_message(
+                self.user_id,
+                MESSAGES["add_to_favorites"],
+                KEYBOARDS["add_to_favorites"]
+            )
         else:
             self.send_message(
                 self.user_id,
