@@ -56,11 +56,12 @@ class UserInfoRetriever:
             return None
 
     @staticmethod
-    def _find_largest_photo(dict_sizes) -> int:
-        if dict_sizes["width"] >= dict_sizes["height"]:
-            return dict_sizes["width"]
-        else:
-            return dict_sizes["height"]
+    def _find_largest_photo(dict_sizes: dict[str, int | str]) -> int:
+        return (
+            dict_sizes["width"]
+            if dict_sizes["width"] >= dict_sizes["height"]
+            else dict_sizes["height"]
+        )
 
     def _get_best_3_photos_id(self, photos: dict) -> list[str] | None:
         if not photos or 'items' not in photos:
