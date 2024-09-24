@@ -184,17 +184,6 @@ def match_data_layout(f_user_id: int) -> list:
     return all_match_info_list
 
 
-def get_existing_favorite_entry(user_id: int, favorite_vk_id: int) \
-        -> Favorites | None:
-    session = Session()
-    return (
-        session
-        .query(Favorites)
-        .filter_by(user_id=user_id, favorite_vk_id=favorite_vk_id)
-        .first()
-    )
-
-
 def add_match_to_favorites(
         user_id: int, favorites: list, selected_match: int
 ) -> None:
@@ -222,3 +211,35 @@ def add_match_to_favorites(
 
     session.add(new_favorite_entry)
     session.commit()
+
+
+def show_favorites(user_id: int) -> str | None:
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    favorites = get_existing_favorite_entry(vk_user_id, return_all=True)
+    return format_favorites_string(favorites)
+
+
+def format_favorites_string(favorites: list) -> str:
+    result = ""
+
+    for i, favorite in enumerate(favorites, start=1):
+        result += (f"{i}. {favorite.first_name} "
+                   f"{favorite.last_name} — {favorite.profile_link}\n")
+
+    return f"Ваши избранные пользователи:\n\n{result}"
+
+
+def get_existing_favorite_entry(
+        user_id: int, favorite_vk_id: int = None, return_all: bool = False
+) -> Favorites | list[Favorites] | None:
+    session = Session()
+    query = session.query(Favorites).filter_by(user_id=user_id)
+
+    if favorite_vk_id is not None:
+        query = query.filter_by(favorite_vk_id=favorite_vk_id)
+
+    return query.all() if return_all else query.first()

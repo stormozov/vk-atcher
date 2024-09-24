@@ -9,7 +9,7 @@ from database.base_funcs import (
     match_data_layout,
     add_match_user_to_db,
     get_match_info_to_print,
-    Session
+    Session, show_favorites
 )
 from vk_bot.keyboard import VKKeyboard
 from vk_bot.search_paginator import Paginator
@@ -163,6 +163,12 @@ class VKBot:
                 self.user_id,
                 MESSAGES["add_to_favorites"],
                 KEYBOARDS["add_to_favorites"]
+            )
+        elif request in COMMANDS["show_favorites"]:
+            self.send_message(
+                self.user_id,
+                show_favorites(self.user_id),
+                KEYBOARDS["next"]
             )
         else:
             self.send_message(

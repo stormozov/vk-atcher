@@ -23,4 +23,11 @@ KEYBOARDS = {
 		"one_time": True,
 		"inline": False
 	},
+	"next": {
+		"btns": [
+			("Продолжить поиск", "positive"),
+		],
+		"one_time": True,
+		"inline": False
+	}
 }
