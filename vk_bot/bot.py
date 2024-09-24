@@ -121,21 +121,10 @@ class VKBot:
             self.send_match_info(self.user_id)
         elif request in COMMANDS["goodbye"]:
             self.send_message(self.user_id, MESSAGES["goodbye"])
-        elif request in COMMANDS["show"]:
-            # Обработка введенной команды пользователем "показать, show".
-            # При вводе этой команды бот высылает информацию о мэтче по одной
-            # и увеличивает счетчик match_info_count на единицу.
-            # Счетчик match_info_count нужен для того, чтобы бот высылал
-            # один новый мэтч с каждой итерацией.
-            self.send_match_info(
-                self.user_id,
-                count=self.match_info_count,
-                btns=KEYBOARDS["card"]
-            )
-            self.match_info_count += 1
-        elif request in COMMANDS["next"]:
-            # Обработка введенной команды пользователем "следующий, next".
-            # При вводе этой команды бот высылает информацию о мэтче по одной
+        elif request in COMMANDS["next"] or request in COMMANDS["show"]:
+            # Обработка введенной команды пользователем "следующий, next",
+            # и/или обработка введенной команды пользователем "показать, show".
+            # При вводе этой команды бот высылает по одной информацию о мэтче
             # и увеличивает счетчик match_info_count на единицу.
             # А также увеличивает счетчик next_command_count на единицу.
             self.send_match_info(
@@ -149,16 +138,14 @@ class VKBot:
             self.next_command_count += 1  # Увеличиваем счетчик команды "next"
             print("Счетчик команды:", self.next_command_count)  # Для отладки
 
-            if self.next_command_count == 2:
-                # Если счетчик команды "next" равен 2,
-                # то добавляем новый мэтч в базу данных
+            if self.next_command_count == 3:
+                # Если счетчик команды "next" или "show" равен 3,
+                # то добавляем новые мэтчи в базу данных и сбрасываем счетчик
+                # "next_command_count" на 0.
+                # Т.е. если у нас есть 3 мэтча, то новые мэтчи будут добавлены
+                # в базу данных при достижении пользователем 3 мэтча.
                 match = self.paginator.next(self.user_id)
                 add_match_user_to_db(match, self.user_id)
-
-            if self.next_command_count == 3:
-                # Если счетчик команды "next" равен 3,
-                # то обнуляем счетчик "next_command_count" команды "next"
-                # и начинаем отсчет счетчика команды "next" с 0
                 self.next_command_count = 0
         else:
             self.send_message(
