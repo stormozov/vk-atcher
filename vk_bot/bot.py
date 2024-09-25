@@ -1,15 +1,17 @@
+from pprint import pprint
+
 import vk_api
 from vk_api.longpoll import VkEventType, VkLongPoll
 
 from settings import COMMANDS, KEYBOARDS, MESSAGES
-from vk_bot import UserInfoRetriever, UserVK
+from vk_bot import UserInfoRetriever
 from database.base_funcs import (
     add_bot_user_to_db,
-    add_match_to_favorites,
+    add_match_to_favorites, add_match_to_black_list,
     match_data_layout,
     add_match_user_to_db,
-    get_match_info_to_print,
-    Session, show_favorites
+    Session, show_favorites, show_black_list,
+    remove_from_black_list
 )
 from vk_bot.keyboard import VKKeyboard
 from vk_bot.search_paginator import Paginator
@@ -24,7 +26,6 @@ class VKBot:
         self.vk = vk_api.VkApi(token=self.token)
         self.longpoll = VkLongPoll(self.vk)
         self.received_profile_info = UserInfoRetriever(db_session)
-        self.user_info = UserVK()
         self.keyboard = VKKeyboard()
         self.found_user_id = None
         # Инициализация пагинатора поиска пользователей
@@ -106,9 +107,9 @@ class VKBot:
             data = self.received_profile_info.get_profile_info(self.user_id)
             #: Вывожу полученные данные о пользователе в консоль (для отладки)
             # print(data)
-            # print(self.received_profile_info.get_user_photos(self.found_user_id))
+            # print(self.received_profile_info.get_profile_info(self.found_user_id))
             #: Загружаю данные пользователя в БД
-            add_bot_user_to_db(data)
+            # add_bot_user_to_db(data)
             # print(get_user_params(self.user_id, session))
 
             # Делаю поиск подходящих пользователей для мэтчей.
@@ -116,9 +117,11 @@ class VKBot:
             # print(self.received_profile_info._add_user_photos_and_url(match))
             #: (для отладки) Вывожу полученные в ходе поиска данные
             # пользователей
-            # print(match)
+            print(len(match))  # из 10 пользователей 3 отпадает из-за неактивности
+            pprint(match)
+
             #: Загружаю данные найденных подходящих пользователей в БД
-            add_match_user_to_db(match, self.user_id)
+            # add_match_user_to_db(match, self.user_id)
         elif request in COMMANDS["hello"]:
             self.send_message(
                 self.user_id,
@@ -170,6 +173,33 @@ class VKBot:
                 show_favorites(self.user_id),
                 KEYBOARDS["next"]
             )
+        elif request in COMMANDS["add_to_black_list"]:
+            add_match_to_black_list(
+                self.user_id,
+                self.current_match_list,
+                self.match_info_count - 1
+            )
+            self.send_message(
+                self.user_id,
+                MESSAGES["add_to_black_list"],
+                KEYBOARDS["add_to_black_list"]
+            )
+        elif request in COMMANDS["show_black_list"]:
+            self.send_message(
+                self.user_id,
+                show_black_list(self.user_id),
+                KEYBOARDS["next"]
+            )
+
+
+        elif isinstance(int(request), int):
+            remove_from_black_list(self.user_id, request)
+            self.send_message(
+                self.user_id,
+                f"Пользователь под номером {request} был удален из черного списка."
+            )
+
+
         else:
             self.send_message(
                 self.user_id,
