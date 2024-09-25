@@ -1,5 +1,6 @@
+import math
 import os
-
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ class UserInfoRetriever:
                     "access_token": self.TOKEN,
                     "v": self.vk_api_version,
                     "user_ids": user_id,
-                    "fields": "city, bdate, sex, relation, has_photo"
+                    "fields": "city, bdate, sex, relation, has_photo, last_seen"
                 }
             )
             return response.json()["response"]
@@ -90,7 +91,7 @@ class UserInfoRetriever:
     def search_users(
             self,
             user_id: int,
-            count: int = 3,
+            count: int = 10,
             age_from: int = 18,
             age_to: int = 50,
             status: int = 6,
@@ -168,12 +169,15 @@ class UserInfoRetriever:
             "sex": 2 if sex == 1 else 1,
             "status": status,
             "has_photo": has_photo,
-            "fields": "city, bdate",
+            "fields": "city, bdate, last_seen",
             "offset": offset
         }
+
         response = requests.get(f"{self.URL}users.search", params)
 
-        return response.json()["response"]["items"]
+        active_users = self.pass_inactive_users(response.json()["response"]["items"])
+
+        return list(active_users.values())
 
     def _add_user_photos_and_url(self, users: list[dict]) -> list[dict]:
         for item in users:
@@ -191,4 +195,15 @@ class UserInfoRetriever:
                         if i < len(user_photos)
                         else None
                     )
+        return users
+    @staticmethod
+    def pass_inactive_users(data: list[dict]) -> dict:
+        users = {}
+        current_time = int(time.time())
+        for user in data:
+            last_visit_time = user.get('last_seen', {}).get('time', 0)
+            time_difference = math.ceil((current_time - last_visit_time) / (60 * 60 * 24))
+            if time_difference < 10:
+                users[user['id']] = user
+
         return users

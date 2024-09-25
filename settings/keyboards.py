@@ -29,5 +29,13 @@ KEYBOARDS = {
 		],
 		"one_time": True,
 		"inline": False
+	},
+	"add_to_black_list": {
+		"btns": [
+			("Продолжить поиск", "positive"),
+			("Черный список", "secondary"),
+		],
+		"one_time": True,
+		"inline": False
 	}
 }
