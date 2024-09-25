@@ -224,13 +224,12 @@ def show_favorites(user_id: int) -> str | None:
 
 
 def format_favorites_string(favorites: list) -> str:
-    result = ""
-
-    for i, favorite in enumerate(favorites, start=1):
-        result += (f"{i}. {favorite.first_name} "
-                   f"{favorite.last_name} — {favorite.profile_link}\n")
-
-    return f"Ваши избранные пользователи:\n\n{result}"
+    result = "\n".join([
+        f"{i}. {favorite.first_name} {favorite.last_name} "
+        f"— {favorite.profile_link}"
+        for i, favorite in enumerate(favorites, start=1)
+    ])
+    return f"Ваш список избранных пользователей:\n\n{result}"
 
 
 def get_existing_favorite_entry(
