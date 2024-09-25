@@ -1,5 +1,5 @@
 from sqlalchemy.exc import SQLAlchemyError
-from database.base import Favorites, Users, Matches, Session
+from database.base import Favorites, Users, Matches, Session,BlackList
 import re
 
 
@@ -242,3 +242,86 @@ def get_existing_favorite_entry(
         query = query.filter_by(favorite_vk_id=favorite_vk_id)
 
     return query.all() if return_all else query.first()
+
+###BLACKLIST
+def add_match_to_black_list(
+        user_id: int, black_list: list, selected_match: int
+) -> None:
+    session = Session()
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    blocked_vk_id = black_list[selected_match][2]
+    first_name, last_name = black_list[selected_match][0].split()
+
+    existing_entry = get_existing_black_list_entry(vk_user_id, blocked_vk_id)
+
+    if existing_entry:
+        return
+
+    new_blocked_entry = BlackList(
+        user_id=vk_user_id,
+        blocked_vk_id=blocked_vk_id,
+        first_name=first_name,
+        last_name=last_name,
+        profile_link=black_list[selected_match][1]
+    )
+
+    session.add(new_blocked_entry)
+    session.commit()
+
+
+def show_black_list(user_id: int) -> str | None:
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    blacklist = get_existing_black_list_entry(vk_user_id, return_all=True)
+
+    if not blacklist:
+        return "Ваш черный список пуст."
+
+    return format_black_list_string(blacklist)
+
+
+def format_black_list_string(blacklist: list) -> str:
+    result = ""
+
+    for i, blacklisted in enumerate(blacklist, start=1):
+        result += (f"{i}. {blacklisted.first_name} "
+                   f"{blacklisted.last_name} — {blacklisted.profile_link}\n")
+
+    return f"Ваши заблокированные пользователи:\n\n{result}"
+
+
+def get_existing_black_list_entry(
+        user_id: int, blocked_vk_id: int = None, return_all: bool = False
+) -> BlackList | list[BlackList] | None:
+    session = Session()
+    query = session.query(BlackList).filter_by(user_id=user_id)
+
+    if blocked_vk_id is not None:
+        query = query.filter_by(blocked_vk_id=blocked_vk_id)
+
+    return query.all() if return_all else query.first()
+
+def remove_from_black_list(user_id: int, selected_match: int) -> None:
+
+    session = Session()
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    blacklist = get_existing_black_list_entry(vk_user_id, return_all=True)
+
+    if not blacklist or selected_match < 1 or selected_match > len(blacklist):
+        return
+
+    blacklisted_entry = blacklist[selected_match - 1]
+
+    session.delete(blacklisted_entry)
+    session.commit()

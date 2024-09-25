@@ -69,27 +69,10 @@ class BlackList(Base):
     blocked_vk_id = sq.Column(sq.Integer, nullable=False, unique=True)
     first_name = sq.Column(sq.String, nullable=False)
     last_name = sq.Column(sq.String, nullable=False)
+    profile_link = sq.Column(sq.String, nullable=False)
 
     user = relationship("Users", back_populates="blacklist")
 
-
-def add_to_blacklist(user_id: int, blocked_vk_id: int, first_name: str, last_name: str, session: Session) -> None:
-    existing_blacklist_entry = (
-        session.query(BlackList).filter_by(user_id=user_id, blocked_vk_id=blocked_vk_id).first())
-
-    if existing_blacklist_entry:
-        return
-
-    new_blacklist_entry = BlackList(
-        user_id=user_id,
-        blocked_vk_id=blocked_vk_id,
-        first_name=first_name,
-        last_name=last_name
-    )
-
-    session.add(new_blacklist_entry)
-    session.commit()
-    print(f"Пользователь {first_name} {last_name} добавлен в черный список.")
 
 
 def create_tables() -> None:
