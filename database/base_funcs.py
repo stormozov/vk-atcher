@@ -220,6 +220,10 @@ def show_favorites(user_id: int) -> str | None:
         return
 
     favorites = get_existing_favorite_entry(vk_user_id, return_all=True)
+
+    if not favorites:
+        return "Ваш список избранных пуст."
+
     return format_favorites_string(favorites)
 
 
@@ -242,6 +246,31 @@ def get_existing_favorite_entry(
         query = query.filter_by(favorite_vk_id=favorite_vk_id)
 
     return query.all() if return_all else query.first()
+
+
+def remove_from_favorites(user_id: int, del_user_id: int) -> None:
+
+    session = Session()
+    vk_user_id = get_user_id_by_vk_id(user_id)
+
+    if not vk_user_id:
+        return
+
+    favorites = get_existing_favorite_entry(vk_user_id, return_all=True)
+
+    if not favorites:
+        return
+
+    blacklisted_entry = next((entry for entry in favorites if
+                              entry.favorite_vk_id == del_user_id), None)
+
+    if not blacklisted_entry:
+        return
+
+    blacklisted_entry = session.merge(blacklisted_entry)
+    session.delete(blacklisted_entry)
+    session.commit()
+
 
 ###BLACKLIST
 def add_match_to_black_list(

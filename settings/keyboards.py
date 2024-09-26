@@ -23,6 +23,14 @@ KEYBOARDS = {
 		"one_time": True,
 		"inline": False
 	},
+	"del_from_favorites": {
+		"btns": [
+			("Продолжить поиск", "positive"),
+			("Убрать из избранного", "secondary"),
+		],
+		"one_time": True,
+		"inline": False
+	},
 	"next": {
 		"btns": [
 			("Продолжить поиск", "positive"),

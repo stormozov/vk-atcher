@@ -182,9 +182,7 @@ class UserInfoRetriever:
     def _add_user_photos_and_url(self, users: list[dict]) -> list[dict]:
         for item in users:
             found_user_id: int = item.get("id")
-            print(found_user_id)
             user_photos: list[str] = self.get_user_photos(found_user_id)
-            print(user_photos)
 
             item["url"] = self.get_user_url(item.get("id"))
 
