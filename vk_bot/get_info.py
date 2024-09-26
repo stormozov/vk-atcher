@@ -4,17 +4,18 @@ import time
 
 import requests
 from dotenv import load_dotenv
-from database.base_funcs import get_user_params, Session
+from database.db_funcs import UserDBManager
 
 load_dotenv()
 
 
 class UserInfoRetriever:
-    def __init__(self, db_session: Session) -> None:
+    def __init__(self, db_session) -> None:
         self.URL = "https://api.vk.com/method/"
         self.TOKEN = os.getenv("VK_TOKEN")
         self.vk_api_version = 5.199
-        self.session = db_session
+        self.session = db_session,
+        self.user_db = UserDBManager()
 
     def get_profile_info(self, user_id: int) -> dict[str, str | int] | None:
         try:
@@ -112,7 +113,7 @@ class UserInfoRetriever:
         )
 
     def _get_user_city_id_and_sex(self, user_id: int) -> tuple[int, int]:
-        params_from_db = get_user_params(user_id, self.session)
+        params_from_db: dict = self.user_db.get_user_params(user_id)
 
         if params_from_db:
             city_id = params_from_db.get("city_id", 1)

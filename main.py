@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from database.base_funcs import Session
+from database.base import Session
 
 
 from vk_bot.bot import VKBot
