@@ -1,6 +1,7 @@
 from pprint import pprint
 
 import vk_api
+import re
 from vk_api.longpoll import VkEventType, VkLongPoll
 
 from settings import COMMANDS, KEYBOARDS, MESSAGES
@@ -10,13 +11,14 @@ from database.base_funcs import (
     add_match_to_favorites, add_match_to_black_list,
     match_data_layout,
     add_match_user_to_db,
-    Session, show_favorites, show_black_list,
-    remove_from_black_list
+    Session, show_favorites, show_black_list, remove_from_black_list,
+    # remove_from_black_list
 )
 from vk_bot.keyboard import VKKeyboard
 from vk_bot.search_paginator import Paginator
 
 session = Session()
+VK_URL_PATTERN = r"https://vk\.com/id(\d+)"
 
 
 class VKBot:
@@ -36,6 +38,7 @@ class VKBot:
         # Для хранения полученного актуального списка мэтчей.
         # Нужен для работы со списком избранных и черным списком.
         self.current_match_list = None
+        self.USER_STATE = {}
 
     def send_message(
             self,
@@ -96,6 +99,7 @@ class VKBot:
         return self.user_id
 
     def _handle_user_request(self, request: str) -> None:
+
         if request in COMMANDS["start"]:
             self.send_message(
                 self.user_id,
@@ -173,6 +177,7 @@ class VKBot:
                 show_favorites(self.user_id),
                 KEYBOARDS["next"]
             )
+
         elif request in COMMANDS["add_to_black_list"]:
             add_match_to_black_list(
                 self.user_id,
@@ -188,20 +193,54 @@ class VKBot:
             self.send_message(
                 self.user_id,
                 show_black_list(self.user_id),
-                KEYBOARDS["next"]
+                KEYBOARDS["del_from_black_list"]
             )
-
-
-        elif isinstance(int(request), int):
-            remove_from_black_list(self.user_id, request)
+        elif request in COMMANDS["del_from_black_list"]:
             self.send_message(
                 self.user_id,
-                f"Пользователь под номером {request} был удален из черного списка."
+                f"Скопируйте и отправьте ссылку на пользователя, которого бы вы хотели убрать из черного списка.",
+                KEYBOARDS["next"]
             )
+            self.USER_STATE[self.user_id] = 'delete_blacklist'
+            print(self.USER_STATE)
+
+        #             ### БЛОК ДЛЯ УДАЛЕНИЯ ИЗБРАННЫХ
+        # elif request in COMMANDS["del_from_favorites"]:
+        #     self.send_message(
+        #         self.user_id,
+        #         f"Скопируйте и отправьте ссылку на пользователя, которого бы вы хотели убрать из избранного.",
+        #         KEYBOARDS["next"]
+        #     )
+        #     self.USER_STATE[self.user_id] = 'delete_favorites'
+
+
+        elif re.match(VK_URL_PATTERN, request):
+            match = re.match(VK_URL_PATTERN, request)
+            del_user_id = int(match.group(1))
+
+            if self.USER_STATE.get(self.user_id) == 'delete_blacklist':
+                remove_from_black_list(self.user_id, del_user_id)
+                self.send_message(
+                    self.user_id,
+                    f"Пользователь с ID {del_user_id} был удален из черного списка.",
+                    KEYBOARDS["next"]
+                )
+                ### БЛОК ДЛЯ УДАЛЕНИЯ ИЗБРАННЫХ
+
+            # elif self.USER_STATE.get(self.user_id) == 'delete_favorites':
+            #     remove_from_favorites(self.user_id, )
+            #     self.send_message(
+            #         self.user_id,
+            #         f"Пользователь с ID {} был удален из избранного.",
+            #         KEYBOARDS["next"]
+            #     )
+
+                self.USER_STATE[self.user_id] = None
 
 
         else:
             self.send_message(
                 self.user_id,
                 MESSAGES["unknown_command"]
+
             )
