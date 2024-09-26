@@ -284,6 +284,7 @@ def show_black_list(user_id: int) -> str | None:
     if not blacklist:
         return "Ваш черный список пуст."
 
+
     return format_black_list_string(blacklist)
 
 
@@ -308,7 +309,7 @@ def get_existing_black_list_entry(
 
     return query.all() if return_all else query.first()
 
-def remove_from_black_list(user_id: int, selected_match: int) -> None:
+def remove_from_black_list(user_id: int, del_user_id: int) -> None:
 
     session = Session()
     vk_user_id = get_user_id_by_vk_id(user_id)
@@ -318,10 +319,14 @@ def remove_from_black_list(user_id: int, selected_match: int) -> None:
 
     blacklist = get_existing_black_list_entry(vk_user_id, return_all=True)
 
-    if not blacklist or selected_match < 1 or selected_match > len(blacklist):
+    if not blacklist:
         return
 
-    blacklisted_entry = blacklist[selected_match - 1]
+    blacklisted_entry = next((entry for entry in blacklist if entry.blocked_vk_id == del_user_id), None)
 
+    if not blacklisted_entry:
+        return
+
+    blacklisted_entry = session.merge(blacklisted_entry)
     session.delete(blacklisted_entry)
     session.commit()

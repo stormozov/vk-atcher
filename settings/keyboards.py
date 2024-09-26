@@ -37,5 +37,13 @@ KEYBOARDS = {
 		],
 		"one_time": True,
 		"inline": False
+	},
+	"del_from_black_list": {
+		"btns": [
+			("Продолжить поиск", "positive"),
+			("Убрать из черного списка", "secondary"),
+		],
+		"one_time": True,
+		"inline": False
 	}
 }
