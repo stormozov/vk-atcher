@@ -16,12 +16,7 @@ class UserDBManager:
                 gender = item.get('sex')
                 city_id = item.get('city', {}).get('id')
 
-                existing_user = (
-                    self.session
-                    .query(Users)
-                    .filter_by(vk_id=vk_id)
-                    .first()
-                )
+                existing_user = self.get_user_by_vk_id(vk_id)
 
                 if existing_user:
                     existing_user.first_name = first_name
@@ -60,11 +55,8 @@ class UserDBManager:
 
                 user_id = self.get_user_id_by_vk_id(f_user_id)
 
-                existing_match = (
-                    self.session
-                    .query(Matches)
-                    .filter_by(matched_vk_id=vk_id)
-                    .first()
+                existing_match = self.get_user_matches(
+                    matched_vk_id=vk_id, return_all=False
                 )
 
                 if existing_match:
@@ -93,43 +85,6 @@ class UserDBManager:
             print(f"Ошибка при добавлении пользователей: {e}")
         finally:
             self.session.close()
-
-    def get_match_info_to_print(self, f_user_id: int) -> list[dict] | None:
-        user_id: int = self.get_user_id_by_vk_id(f_user_id)
-
-        try:
-            matches: list[Matches] = (
-                self.session
-                .query(Matches)
-                .filter_by(user_id=user_id)
-                .all()
-            )
-            if matches:
-                result_list = []
-                for match in matches:
-                    match_dict = {
-                        "first_name": match.first_name,
-                        "last_name": match.last_name,
-                        "profile_link": match.profile_link,
-                        "vk_id": match.matched_vk_id
-                    }
-                    if match.photo_id_1:
-                        match_dict["photo_id_1"] = match.photo_id_1
-                    if match.photo_id_2:
-                        match_dict["photo_id_2"] = match.photo_id_2
-                    if match.photo_id_3:
-                        match_dict["photo_id_3"] = match.photo_id_3
-
-                    result_list.append(match_dict)
-
-                return result_list
-            else:
-                return None
-        except SQLAlchemyError as e:
-            print(
-                f"Произошла ошибка при получении параметров пользователя: {e}"
-            )
-            return None
 
     def match_data_layout(self, f_user_id: int) -> list:
         match_info: list[dict] = self.get_match_info_to_print(f_user_id)
@@ -165,14 +120,33 @@ class UserDBManager:
 
         return all_match_info_list
 
-    def get_user_params(self, user_id: int) -> dict | None:
+    def get_match_info_to_print(self, f_user_id: int) -> list[dict] | None:
+        user_id: int = self.get_user_id_by_vk_id(f_user_id)
+
         try:
-            user = self.session.query(Users).filter_by(vk_id=user_id).first()
-            if user:
-                return {
-                    "city_id": user.city,
-                    "sex": user.gender
-                }
+            matches = self.get_user_matches(
+                user_id=user_id, return_all=True
+            )
+
+            if matches:
+                result_list = []
+                for match in matches:
+                    match_dict = {
+                        "first_name": match.first_name,
+                        "last_name": match.last_name,
+                        "profile_link": match.profile_link,
+                        "vk_id": match.matched_vk_id
+                    }
+                    if match.photo_id_1:
+                        match_dict["photo_id_1"] = match.photo_id_1
+                    if match.photo_id_2:
+                        match_dict["photo_id_2"] = match.photo_id_2
+                    if match.photo_id_3:
+                        match_dict["photo_id_3"] = match.photo_id_3
+
+                    result_list.append(match_dict)
+
+                return result_list
             else:
                 return None
         except SQLAlchemyError as e:
@@ -181,9 +155,26 @@ class UserDBManager:
             )
             return None
 
+    def get_user_params(self, user_id: int) -> dict | None:
+        try:
+            user = self.get_user_by_vk_id(user_id)
+            return (
+                {
+                    "city_id": user.city,
+                    "sex": user.gender
+                }
+                if user
+                else None
+            )
+        except SQLAlchemyError as e:
+            print(
+                f"Произошла ошибка при получении параметров пользователя: {e}"
+            )
+            return None
+
     def get_user_id_by_vk_id(self, vk_id: int) -> int | None:
         try:
-            user = self.session.query(Users).filter_by(vk_id=vk_id).first()
+            user = self.get_user_by_vk_id(vk_id)
             return (
                 user.user_id
                 if user
@@ -192,3 +183,28 @@ class UserDBManager:
         except SQLAlchemyError as e:
             print(f"Произошла ошибка при получении user_id: {e}")
             return None
+
+    def get_user_by_vk_id(self, user_id: int) -> Users | None:
+        return self.session.query(Users).filter_by(vk_id=user_id).first()
+
+    def get_user_matches(
+            self,
+            user_id: int = None,
+            matched_vk_id: int = None,
+            return_all: bool = False
+    ) -> list[Matches] | Matches | None:
+        try:
+            query = self.session.query(Matches)
+
+            query = (
+                query.filter_by(user_id=user_id)
+                if user_id
+                else query.filter_by(matched_vk_id=matched_vk_id)
+            )
+
+            return query.all() if return_all else query.first()
+        except SQLAlchemyError as e:
+            print(
+                f"Произошла ошибка при получении параметров пользователя: {e}"
+            )
+            return []
