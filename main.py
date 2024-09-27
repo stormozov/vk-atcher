@@ -12,5 +12,6 @@ load_dotenv()
 if __name__ == '__main__':
     db_session = Session()
     group_token = os.getenv('VK_GROUP_TOKEN')
-    bot = VKBot(group_token, db_session)
+    vk_token = os.getenv("VK_TOKEN")
+    bot = VKBot(group_token, vk_token, db_session)
     bot.start()

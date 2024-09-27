@@ -10,25 +10,30 @@ from database.db_funcs import (
 from settings import COMMANDS, KEYBOARDS, MESSAGES
 from vk_bot import UserInfoRetriever
 from vk_bot.keyboard import VKKeyboard
-from vk_bot.search_paginator import Paginator
+from vk_bot.search import UserSearcher, Paginator
 
 VK_URL_PATTERN = r"https://vk\.com/id(\d+)"
 
 
 class VKBot:
-    def __init__(self, group_token: str, db_session) -> None:
+    def __init__(self, group_token: str, vk_token: str, db_session) -> None:
         self.user_id = None
-        self.token = group_token
+        self.group_token = group_token
+        self.vk_token = vk_token
+        self.vk_api_version = 5.199
         self.session = db_session
-        self.vk = vk_api.VkApi(token=self.token)
+        self.vk = vk_api.VkApi(token=self.group_token)
         self.longpoll = VkLongPoll(self.vk)
         self.user_db = UserDBManager()
         self.favorites_db = FavoritesDBManager()
         self.black_list_db = BlackListDBManager()
-        self.received_profile_info = UserInfoRetriever(self.session)
+        self.received_profile_info = UserInfoRetriever(
+            self.vk_token, self.vk_api_version
+        )
         self.keyboard = VKKeyboard()
-        # Инициализация пагинатора поиска пользователей
-        self.paginator = Paginator(self.received_profile_info)
+        # Инициализация поискового объекта
+        self.searcher = UserSearcher(self.vk_token, self.vk_api_version)
+        self.paginator = Paginator(self.vk_token, self.vk_api_version)
         # Инициализация счётчиков команд
         self.next_command_count = 0
         self.match_info_count = 0
@@ -116,7 +121,7 @@ class VKBot:
             # print(get_user_params(self.user_id, session))
 
             # Делаю поиск подходящих пользователей для мэтчей.
-            match = self.received_profile_info.search_users(self.user_id)
+            match = self.searcher.search_users(self.user_id)
             # print(self.received_profile_info._add_user_photos_and_url(match))
             #: (для отладки) Вывожу полученные в ходе поиска данные
             # пользователей
