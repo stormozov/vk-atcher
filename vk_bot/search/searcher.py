@@ -4,7 +4,9 @@ import time
 import requests
 
 from database.db_funcs import UserDBManager
+from database.db_funcs.target_searcher import get_target_users
 from vk_bot import UserInfoRetriever
+
 
 
 class UserSearcher:
@@ -18,7 +20,7 @@ class UserSearcher:
     def search_users(
         self,
         user_id: int,
-        count: int = 10, 
+        count: int = 100,
         age_from: int = 18, 
         age_to: int = 50, 
         status: int = 6, 
@@ -102,8 +104,9 @@ class UserSearcher:
         active_users = self._pass_inactive_users(
             response.json()["response"]["items"]
         )
+        target_users = get_target_users(list(active_users.values()),self.user_id) #### ВОТ ЗДЕСЬ 2ОЙ АРГУМЕНТ
         
-        return list(active_users.values())
+        return list(target_users.values())
 
     def _add_user_photos_and_url(self, users: list[dict]) -> list[dict]:
         for item in users:
@@ -121,18 +124,23 @@ class UserSearcher:
         return users
 
     def _pass_inactive_users(self, data: list[dict]) -> dict:
-        users = {}
+        active_users = {}
         
         for user in data:
             last_visit_time = user.get('last_seen', {}).get('time', 0)
             time_difference = self._get_time_difference(last_visit_time)
-            
+
             if time_difference < 10:
-                users[user['id']] = user
-        
-        return users
+                active_users[user['id']] = user
+
+        return active_users
 
     @staticmethod
     def _get_time_difference(last_visit_time: int) -> int:
         current_time = int(time.time())
         return math.ceil((current_time - last_visit_time) / (60 * 60 * 24))
+
+
+
+
+

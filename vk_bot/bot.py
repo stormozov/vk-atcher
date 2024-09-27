@@ -125,8 +125,8 @@ class VKBot:
             # print(self.received_profile_info._add_user_photos_and_url(match))
             #: (для отладки) Вывожу полученные в ходе поиска данные
             # пользователей
-            print(len(match))  # из 10 пользователей 3 отпадает из-за неактивности
-            pprint(match)
+            # print(len(match))  # из 10 пользователей 3 отпадает из-за неактивности
+            # pprint(match)
 
             #: Загружаю данные найденных подходящих пользователей в БД
             self.user_db.add_match_user_to_db(match, self.user_id)
@@ -138,11 +138,6 @@ class VKBot:
         elif request in COMMANDS["goodbye"]:
             self.send_message(self.user_id, MESSAGES["goodbye"])
         elif request in COMMANDS["next"] or request in COMMANDS["show"]:
-            # Обработка введенной команды пользователем "следующий, next",
-            # и/или обработка введенной команды пользователем "показать, show".
-            # При вводе этой команды бот высылает по одной информацию о мэтче
-            # и увеличивает счетчик match_info_count на единицу.
-            # А также увеличивает счетчик next_command_count на единицу.
             self.current_match_list = self.send_match_info(
                 self.user_id,
                 count=self.match_info_count,
@@ -204,7 +199,6 @@ class VKBot:
                 KEYBOARDS["next"]
             )
             self.USER_STATE[self.user_id] = 'delete_blacklist'
-            print(self.USER_STATE)
         elif request in COMMANDS["del_from_favorites"]:
             self.send_message(
                 self.user_id,
