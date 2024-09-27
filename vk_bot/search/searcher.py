@@ -3,10 +3,8 @@ import time
 
 import requests
 
-from database.db_funcs import UserDBManager
-from database.db_funcs.target_searcher import get_target_users
+from database.db_funcs import UserDBManager, TargetUserSearcher
 from vk_bot import UserInfoRetriever
-
 
 
 class UserSearcher:
@@ -16,6 +14,7 @@ class UserSearcher:
         self.URL = "https://api.vk.com/method/"
         self.user_db = UserDBManager()
         self.user_info = UserInfoRetriever(self.token, self.vk_api_version)
+        self.target_searcher = TargetUserSearcher()
 
     def search_users(
         self,
@@ -29,6 +28,7 @@ class UserSearcher:
     ) -> list[dict]:
         city_id, sex = self._get_user_city_id_and_sex(user_id)
         return self._process_users_with_photos_and_url(
+            user_id,
             count, 
             age_from, 
             age_to, 
@@ -52,6 +52,7 @@ class UserSearcher:
 
     def _process_users_with_photos_and_url(
         self,
+        user_id: int,
         count: int,
         age_from: int, 
         age_to: int, 
@@ -63,6 +64,7 @@ class UserSearcher:
     ) -> list[dict]:
         try:
             users = self._fetch_users_from_search(
+                user_id,
                 count, 
                 age_from, 
                 age_to, 
@@ -78,6 +80,7 @@ class UserSearcher:
 
     def _fetch_users_from_search(
         self,
+        user_id: int,
         count: int, 
         age_from: int, 
         age_to: int, 
@@ -104,7 +107,9 @@ class UserSearcher:
         active_users = self._pass_inactive_users(
             response.json()["response"]["items"]
         )
-        target_users = get_target_users(list(active_users.values()),self.user_id) #### ВОТ ЗДЕСЬ 2ОЙ АРГУМЕНТ
+        target_users = self.target_searcher.get_target_users(
+            list(active_users.values()), user_id
+        )
         
         return list(target_users.values())
 
