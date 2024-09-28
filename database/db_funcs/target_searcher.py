@@ -25,27 +25,23 @@ class TargetUserSearcher:
 
     def get_blocked_and_favorites_by_vk_id(self, user_id: int) \
             -> dict[str, list[int]]:
-        result = {"blocked": [], "favorites": []}
-
         if not user_id:
-            return result
+            return {"blocked": [], "favorites": []}
 
         try:
             blocked_ids = self._get_ids_by_table_type("blocked", user_id)
             favorite_ids = self._get_ids_by_table_type("favorites", user_id)
 
-            result["blocked"] = [item[0] for item in blocked_ids]
-            result["favorites"] = [item[0] for item in favorite_ids]
+            return {"blocked": blocked_ids, "favorites": favorite_ids}
         except SQLAlchemyError as e:
             print(f"Произошла ошибка при получении данных: {e}")
-
-        return result
+            return {"blocked": [], "favorites": []}
 
     def _get_ids_by_table_type(self, table_type: str, user_id: int) \
-            -> list[tuple[int]]:
+            -> list[int]:
         query = self.session.query(
             BlackList.blocked_vk_id
             if table_type == "blocked"
             else Favorites.favorite_vk_id
         )
-        return query.filter_by(user_id=user_id).all()
+        return [item[0] for item in query.filter_by(user_id=user_id).all()]
