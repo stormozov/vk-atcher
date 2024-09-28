@@ -8,25 +8,24 @@ class TargetUserSearcher:
         self.user_db = UserDBManager()
         self.session = Session()
 
-    def get_target_users(self, candidates: list[dict], user_vk_id: int) -> dict:
-        target_users = {}
+    def get_target_users(self, candidates: list[dict], target_user_vk_id: int) \
+            -> dict[int, dict[str, int | str | dict[str, int | str]] | bool]:
+        filtered_users = {}
 
         for candidate in candidates:
             target_vk_id = candidate.get('id', {})
-            candidate_id = self.user_db.get_user_id_by_vk_id(user_vk_id)
-            rejected_ids = self.get_blocked_and_favorites_by_vk_id(candidate_id)
+            user_id = self.user_db.get_user_id_by_vk_id(target_user_vk_id)
+            rejected_ids = self.get_blocked_and_favorites_by_vk_id(user_id)
 
             if (target_vk_id not in rejected_ids['blocked']
                     and target_vk_id not in rejected_ids['favorites']):
-                target_users[candidate['id']] = candidate
+                filtered_users[candidate['id']] = candidate
 
-        return target_users
+        return filtered_users
 
-    def get_blocked_and_favorites_by_vk_id(self, candidate_id: int) \
+    def get_blocked_and_favorites_by_vk_id(self, user_id: int) \
             -> dict[str, list[int]]:
         result = {"blocked": [], "favorites": []}
-
-        user_id = self.user_db.get_user_id_by_vk_id(candidate_id)
 
         if not user_id:
             return result
@@ -42,7 +41,8 @@ class TargetUserSearcher:
 
         return result
 
-    def _get_ids_by_table_type(self, table_type: str, user_id: int):
+    def _get_ids_by_table_type(self, table_type: str, user_id: int) \
+            -> list[tuple[int]]:
         query = self.session.query(
             BlackList.blocked_vk_id
             if table_type == "blocked"
