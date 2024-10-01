@@ -1,7 +1,6 @@
-from pprint import pprint
+import re
 
 import vk_api
-import re
 from vk_api.longpoll import VkEventType, VkLongPoll
 
 from database.db_funcs import (
@@ -10,7 +9,7 @@ from database.db_funcs import (
 from settings import COMMANDS, KEYBOARDS, MESSAGES
 from vk_bot import UserInfoRetriever
 from vk_bot.keyboard import VKKeyboard
-from vk_bot.search import UserSearcher, Paginator
+from vk_bot.search import Paginator, UserSearcher
 
 VK_URL_PATTERN = r"https://vk\.com/id(\d+)"
 
@@ -103,136 +102,149 @@ class VKBot:
         return self.user_id
 
     def _handle_user_request(self, request: str) -> None:
-
         if request in COMMANDS["start"]:
-            self.send_message(
-                self.user_id,
-                MESSAGES["start"],
-                KEYBOARDS["start"]
-            )
-            #: Получаю информацию о пользователе,
-            #: который взаимодействует с ботом
-            data = self.received_profile_info.get_profile_info(self.user_id)
-            #: Вывожу полученные данные о пользователе в консоль (для отладки)
-            # print(data)
-            # print(self.received_profile_info.get_profile_info(self.found_user_id))
-            #: Загружаю данные пользователя в БД
-            self.user_db.add_bot_user_to_db(data)
-            # print(get_user_params(self.user_id, session))
-
-            # Делаю поиск подходящих пользователей для мэтчей.
-            match = self.searcher.search_users(self.user_id)
-            # print(self.received_profile_info._add_user_photos_and_url(match))
-            #: (для отладки) Вывожу полученные в ходе поиска данные
-            # пользователей
-            # print(len(match))  # из 10 пользователей 3 отпадает из-за неактивности
-            # pprint(match)
-
-            #: Загружаю данные найденных подходящих пользователей в БД
-            self.user_db.add_match_user_to_db(match, self.user_id)
+            self._handle_start_command()
         elif request in COMMANDS["hello"]:
-            self.send_message(
-                self.user_id,
-                MESSAGES["hello"]
-            )
+            self._handle_hello_command()
         elif request in COMMANDS["goodbye"]:
-            self.send_message(self.user_id, MESSAGES["goodbye"])
+            self._handle_goodbye_command()
         elif request in COMMANDS["next"] or request in COMMANDS["show"]:
-            self.current_match_list = self.send_match_info(
-                self.user_id,
-                count=self.match_info_count,
-                btns=KEYBOARDS["card"]
-            )
-            self.match_info_count += 1
-
-            print("ПАГИНАТОР ПОИСКА")  # Для отладки
-            self.next_command_count += 1  # Увеличиваем счетчик команды "next"
-            print("Счетчик команды:", self.next_command_count)  # Для отладки
-
-            if self.next_command_count == 3:
-                # Если счетчик команды "next" или "show" равен 3,
-                # то добавляем новые мэтчи в базу данных и сбрасываем счетчик
-                # "next_command_count" на 0.
-                # Т.е. если у нас есть 3 мэтча, то новые мэтчи будут добавлены
-                # в базу данных при достижении пользователем 3 мэтча.
-                match = self.paginator.next(self.user_id)
-                self.user_db.add_match_user_to_db(match, self.user_id)
-                self.next_command_count = 0
+            self._handle_next_command()
         elif request in COMMANDS["add_to_favorites"]:
-            self.favorites_db.add_match_to_favorites(
-                self.user_id,
-                self.current_match_list,
-                self.match_info_count - 1
-            )
-            self.send_message(
-                self.user_id,
-                MESSAGES["add_to_favorites"],
-                KEYBOARDS["add_to_favorites"]
-            )
+            self._handle_add_to_favorites_command()
         elif request in COMMANDS["show_favorites"]:
-            self.send_message(
-                self.user_id,
-                self.favorites_db.show_favorites(self.user_id),
-                KEYBOARDS["del_from_favorites"]
-            )
+            self._handle_show_favorites_command()
         elif request in COMMANDS["add_to_black_list"]:
-            self.black_list_db.add_match_to_black_list(
-                self.user_id,
-                self.current_match_list,
-                self.match_info_count - 1
-            )
-            self.send_message(
-                self.user_id,
-                MESSAGES["add_to_black_list"],
-                KEYBOARDS["add_to_black_list"]
-            )
+            self._handle_add_to_black_list_command()
         elif request in COMMANDS["show_black_list"]:
-            self.send_message(
-                self.user_id,
-                self.black_list_db.show_black_list(self.user_id),
-                KEYBOARDS["del_from_black_list"]
-            )
+            self._handle_show_black_list_command()
         elif request in COMMANDS["del_from_black_list"]:
-            self.send_message(
-                self.user_id,
-                MESSAGES["del_from_black_list_instruction"],
-                KEYBOARDS["next"]
-            )
-            self.USER_STATE[self.user_id] = 'delete_blacklist'
+            self._handle_delete_from_black_list_command()
         elif request in COMMANDS["del_from_favorites"]:
+            self._handle_delete_from_favorites_command()
+        elif re.match(VK_URL_PATTERN, request):
+            self._handle_url_request(request)
+        else:
+            self._handle_unknown_command()
+
+    def _handle_start_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            MESSAGES["start"],
+            KEYBOARDS["start"]
+        )
+        #: Получаю информацию о пользователе,
+        #: который взаимодействует с ботом
+        data = self.received_profile_info.get_profile_info(self.user_id)
+        #: Загружаю данные пользователя в БД
+        self.user_db.add_bot_user_to_db(data)
+        # Делаю поиск подходящих пользователей для мэтчей.
+        match = self.searcher.search_users(self.user_id)
+        #: Загружаю данные найденных подходящих пользователей в БД
+        self.user_db.add_match_user_to_db(match, self.user_id)
+
+    def _handle_hello_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            MESSAGES["hello"]
+        )
+
+    def _handle_goodbye_command(self) -> None:
+        self.send_message(self.user_id, MESSAGES["goodbye"])
+
+    def _handle_next_command(self) -> None:
+        self.current_match_list = self.send_match_info(
+            self.user_id,
+            count=self.match_info_count,
+            btns=KEYBOARDS["card"]
+        )
+        self.match_info_count += 1  # Увеличиваем счетчик подходящих юзеров
+        self.next_command_count += 1  # Увеличиваем счетчик команды "next"
+
+        if self.next_command_count == 3:
+            match = self.paginator.next(self.user_id)
+            self.user_db.add_match_user_to_db(match, self.user_id)
+            self.next_command_count = 0  # Обнуляем счетчик команды "next"
+
+    def _handle_add_to_favorites_command(self) -> None:
+        self.favorites_db.add_match_to_favorites(
+            self.user_id,
+            self.current_match_list,
+            self.match_info_count - 1
+        )
+        self.send_message(
+            self.user_id,
+            MESSAGES["add_to_favorites"],
+            KEYBOARDS["add_to_favorites"]
+        )
+
+    def _handle_show_favorites_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            self.favorites_db.show_favorites(self.user_id),
+            KEYBOARDS["del_from_favorites"]
+        )
+
+    def _handle_add_to_black_list_command(self) -> None:
+        self.black_list_db.add_match_to_black_list(
+            self.user_id,
+            self.current_match_list,
+            self.match_info_count - 1
+        )
+        self.send_message(
+            self.user_id,
+            MESSAGES["add_to_black_list"],
+            KEYBOARDS["add_to_black_list"]
+        )
+
+    def _handle_show_black_list_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            self.black_list_db.show_black_list(self.user_id),
+            KEYBOARDS["del_from_black_list"]
+        )
+
+    def _handle_delete_from_black_list_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            MESSAGES["del_from_black_list_instruction"],
+            KEYBOARDS["next"]
+        )
+        self.USER_STATE[self.user_id] = 'delete_blacklist'
+
+    def _handle_delete_from_favorites_command(self) -> None:
+        self.send_message(
+            self.user_id,
+            MESSAGES["del_from_favorites_instruction"],
+            KEYBOARDS["next"]
+        )
+        self.USER_STATE[self.user_id] = 'delete_favorites'
+
+    def _handle_url_request(self, request: str) -> None:
+        match = re.match(VK_URL_PATTERN, request)
+        del_user_id = int(match.group(1))
+
+        if self.USER_STATE.get(self.user_id) == 'delete_blacklist':
+            self.black_list_db.remove_from_black_list(
+                self.user_id, del_user_id
+            )
             self.send_message(
                 self.user_id,
-                MESSAGES["del_from_favorites_instruction"],
+                f"Пользователь с ID {del_user_id} "
+                f"был удален из черного списка.",
                 KEYBOARDS["next"]
             )
-            self.USER_STATE[self.user_id] = 'delete_favorites'
-        elif re.match(VK_URL_PATTERN, request):
-            match = re.match(VK_URL_PATTERN, request)
-            del_user_id = int(match.group(1))
-
-            if self.USER_STATE.get(self.user_id) == 'delete_blacklist':
-                self.black_list_db.remove_from_black_list(
-                    self.user_id, del_user_id
-                )
-                self.send_message(
-                    self.user_id,
-                    f"Пользователь с ID {del_user_id} "
-                    f"был удален из черного списка.",
-                    KEYBOARDS["next"]
-                )
-            elif self.USER_STATE.get(self.user_id) == 'delete_favorites':
-                self.favorites_db.remove_from_favorites(
-                    self.user_id, del_user_id
-                )
-                self.send_message(
-                    self.user_id,
-                    f"Пользователь с ID {del_user_id} "
-                    f"был удален из избранного.",
-                    KEYBOARDS["next"]
-                )
-                self.USER_STATE[self.user_id] = None
-        else:
+        if self.USER_STATE.get(self.user_id) == 'delete_favorites':
+            self.favorites_db.remove_from_favorites(
+                self.user_id, del_user_id
+            )
             self.send_message(
                 self.user_id,
-                MESSAGES["unknown_command"]
+                f"Пользователь с ID {del_user_id} "
+                f"был удален из избранного.",
+                KEYBOARDS["next"]
             )
+            self.USER_STATE[self.user_id] = None
+
+    def _handle_unknown_command(self) -> None:
+        self.send_message(self.user_id, MESSAGES["unknown_command"])
