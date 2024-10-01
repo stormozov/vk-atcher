@@ -101,6 +101,8 @@ class VKBot:
     def _handle_user_request(self, request: str) -> None:
         if request in COMMANDS["start"]:
             self._handle_start_command()
+        elif request in COMMANDS["help"]:
+            self._handle_help_command()
         elif request in COMMANDS["hello"]:
             self._handle_hello_command()
         elif request in COMMANDS["goodbye"]:
@@ -139,6 +141,12 @@ class VKBot:
         match = self.searcher.search_users(self.user_id)
         #: Загружаю данные найденных подходящих пользователей в БД
         self.user_db.add_match_user_to_db(match, self.user_id)
+
+    def _handle_help_command(self) -> None:
+        self.send_message(self.user_id, MESSAGES["help_1"])
+        self.send_message(self.user_id, MESSAGES["help_2"])
+        self.send_message(self.user_id, MESSAGES["help_3"])
+        self.send_message(self.user_id, MESSAGES["help_4"], KEYBOARDS["help"])
 
     def _handle_hello_command(self) -> None:
         self.send_message(

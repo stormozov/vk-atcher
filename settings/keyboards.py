@@ -1,10 +1,18 @@
 KEYBOARDS = {
 	"start": {
 		"btns": [
-			("Начать поиск", "positive")
+			("Начать поиск", "positive"),
+			("Помощь", "primary"),
 		],
 		"one_time": True,
 		"inline": False
+	},
+	"help": {
+		"btns": [
+			("Начать поиск", "positive"),
+		],
+		"one_time": True,
+		"inline": False,
 	},
 	"card": {
 		"btns": [
