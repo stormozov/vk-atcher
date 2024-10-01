@@ -47,7 +47,8 @@ class VKBot:
             self,
             user_id: int,
             msg: str,
-            btns: dict[str, list[tuple[str, str]] | bool] | None = None
+            btns: dict[str, list[tuple[str, str]] | bool] | None = None,
+            attachment: str = None,
     ) -> None:
         keyboard_json: str | None = self.keyboard.create_markup(btns)
 
@@ -56,19 +57,19 @@ class VKBot:
             {
                 "user_id": user_id,
                 "message": msg,
-                "random_id": 0,
-                "keyboard": keyboard_json
+                "keyboard": keyboard_json,
+                "attachment": attachment,
+                "random_id": 0
             }
         )
 
     def send_match_info(
             self,
             vk_user_id: int,
-            attachment: str = None,
             count: int = 0,
-            btns: dict[str, list[tuple[str, str]] | bool] | None = None
+            btns: dict[str, list[tuple[str, str]] | bool] | None = None,
+            attachment: str = None
     ) -> list:
-        keyboard_json: str | None = self.keyboard.create_markup(btns)
         match_info = self.user_db.match_data_layout(vk_user_id)
 
         if 0 <= count < len(match_info):
@@ -81,13 +82,12 @@ class VKBot:
             if user_photos:
                 attachment = ','.join(user_photos)
 
-            self.vk.method('messages.send', {
-                'user_id': vk_user_id,
-                'message': user_info_text,
-                'random_id': 0,
-                'attachment': attachment,
-                'keyboard': keyboard_json
-            })
+            self.send_message(
+                vk_user_id,
+                user_info_text,
+                btns,
+                attachment
+            )
 
         return match_info
 
@@ -97,9 +97,6 @@ class VKBot:
                 request = event.text.strip().lower()
                 self.user_id = event.user_id
                 self._handle_user_request(request)
-
-    def get_user_id(self) -> int:
-        return self.user_id
 
     def _handle_user_request(self, request: str) -> None:
         if request in COMMANDS["start"]:
@@ -155,8 +152,8 @@ class VKBot:
     def _handle_next_command(self) -> None:
         self.current_match_list = self.send_match_info(
             self.user_id,
-            count=self.match_info_count,
-            btns=KEYBOARDS["card"]
+            self.match_info_count,
+            KEYBOARDS["card"]
         )
         self.match_info_count += 1  # Увеличиваем счетчик подходящих юзеров
         self.next_command_count += 1  # Увеличиваем счетчик команды "next"
