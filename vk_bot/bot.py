@@ -9,7 +9,7 @@ from database.db_funcs import (
 from settings import COMMANDS, KEYBOARDS, MESSAGES
 from vk_bot import UserInfoRetriever
 from vk_bot.keyboard import VKKeyboard
-from vk_bot.search import Paginator, UserSearcher
+from vk_bot.searcher import UserSearcher
 
 VK_URL_PATTERN = r"https://vk\.com/id(\d+)"
 
@@ -32,9 +32,7 @@ class VKBot:
         self.keyboard = VKKeyboard()
         # Инициализация поискового объекта
         self.searcher = UserSearcher(self.vk_token, self.vk_api_version)
-        self.paginator = Paginator(self.vk_token, self.vk_api_version)
-        # Инициализация счётчиков команд
-        self.next_command_count = 0
+        # Инициализация счетчика актуального мэтча
         self.match_info_count = 0
         # Для хранения полученного актуального списка мэтчей.
         # Нужен для работы со списком избранных и черным списком.
@@ -88,6 +86,8 @@ class VKBot:
                 btns,
                 attachment
             )
+        elif count == len(match_info):
+            self.send_message(vk_user_id, MESSAGES["no_more_matches"])
 
         return match_info
 
@@ -156,12 +156,6 @@ class VKBot:
             KEYBOARDS["card"]
         )
         self.match_info_count += 1  # Увеличиваем счетчик подходящих юзеров
-        self.next_command_count += 1  # Увеличиваем счетчик команды "next"
-
-        if self.next_command_count == 3:
-            match = self.paginator.next(self.user_id)
-            self.user_db.add_match_user_to_db(match, self.user_id)
-            self.next_command_count = 0  # Обнуляем счетчик команды "next"
 
     def _handle_add_to_favorites_command(self) -> None:
         self.favorites_db.add_match_to_favorites(

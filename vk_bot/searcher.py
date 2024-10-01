@@ -19,7 +19,7 @@ class UserSearcher:
     def search_users(
         self,
         user_id: int,
-        count: int = 100,
+        count: int = 1000,
         age_from: int = 18, 
         age_to: int = 50, 
         status: int = 6, 
