@@ -1,3 +1,9 @@
+"""Модуль с классом для работы с ботом.
+
+Этот модуль является основным компонентом бота и содержит ключевые функции.
+В него передаются токены для доступа к VK API, а также импортируются другие
+модули, необходимые для работы таких функций, как поиск пользователей,
+черный список, список избранных и база данных."""
 import re
 
 import vk_api
@@ -15,7 +21,17 @@ VK_URL_PATTERN = r"https://vk\.com/id(\d+)"
 
 
 class VKBot:
+    """Класс для работы с ботом."""
     def __init__(self, group_token: str, vk_token: str, db_session) -> None:
+        """Инициализация бота.
+
+        Инициализация всех необходимых зависимых модулей.
+
+        Args:
+            group_token (str): Токен для доступа к группе Vk.
+            vk_token (str): Токен для доступа к VK API.
+            db_session: Сессия базы данных.
+        """
         self.user_id = None
         self.group_token = group_token
         self.vk_token = vk_token
@@ -48,6 +64,18 @@ class VKBot:
             btns: dict[str, list[tuple[str, str]] | bool] | None = None,
             attachment: str = None,
     ) -> None:
+        """Метод для отправки сообщения пользователю.
+
+        Поддерживает отправку с кнопками и вложениями.
+
+        Args:
+            user_id (int): ID пользователя.
+            msg (str): Текст сообщения.
+            btns (dict[str, list[tuple[str, str]] | bool] | None, optional):
+                Кнопки необходимые для отображения с сообщением.
+                По умолчанию None.
+            attachment (str, optional): Вложения (фото). По умолчанию None.
+        """
         keyboard_json: str | None = self.keyboard.create_markup(btns)
 
         self.vk.method(
@@ -68,6 +96,20 @@ class VKBot:
             btns: dict[str, list[tuple[str, str]] | bool] | None = None,
             attachment: str = None
     ) -> list:
+        """Метод для отправки актуального списка мэтчей пользователю.
+
+        Args:
+            vk_user_id (int): ID пользователя.
+            count (int, optional): Счетчик актуального списка мэтчей.
+                По умолчанию 0.
+            btns (dict[str, list[tuple[str, str]] | bool] | None, optional):
+                Кнопки необходимые для отображения с сообщением.
+                По умолчанию None.
+            attachment (str, optional): Вложения (фото). По умолчанию None.
+
+        Returns:
+            list: Актуальный список мэтчей.
+        """
         match_info = self.user_db.match_data_layout(vk_user_id)
 
         if 0 <= count < len(match_info):
@@ -92,6 +134,7 @@ class VKBot:
         return match_info
 
     def start(self) -> None:
+        """Метод для запуска бота и прослушивания событий."""
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 request = event.text.strip().lower()
@@ -99,6 +142,15 @@ class VKBot:
                 self._handle_user_request(request)
 
     def _handle_user_request(self, request: str) -> None:
+        """Метод для обработки запроса пользователя.
+
+        Пользователь отправляет сообщение боту. Это сообщение обрабатывается
+        по указанным командам и вызывает соответствующие методы.
+        При несуществующей команде бот отправляет сообщение об ошибке.
+
+        Args:
+            request (str): Запрос пользователя.
+        """
         if request in COMMANDS["start"]:
             self._handle_start_command()
         elif request in COMMANDS["help"]:
@@ -127,6 +179,7 @@ class VKBot:
             self._handle_unknown_command()
 
     def _handle_start_command(self) -> None:
+        """Метод для обработки команды start."""
         self.send_message(
             self.user_id,
             MESSAGES["start"],
@@ -143,21 +196,25 @@ class VKBot:
         self.user_db.add_match_user_to_db(match, self.user_id)
 
     def _handle_help_command(self) -> None:
+        """Метод для обработки команды help."""
         self.send_message(self.user_id, MESSAGES["help_1"])
         self.send_message(self.user_id, MESSAGES["help_2"])
         self.send_message(self.user_id, MESSAGES["help_3"])
         self.send_message(self.user_id, MESSAGES["help_4"], KEYBOARDS["help"])
 
     def _handle_hello_command(self) -> None:
+        """Метод для обработки команды hello."""
         self.send_message(
             self.user_id,
             MESSAGES["hello"]
         )
 
     def _handle_goodbye_command(self) -> None:
+        """Метод для обработки команды goodbye."""
         self.send_message(self.user_id, MESSAGES["goodbye"])
 
     def _handle_next_command(self) -> None:
+        """Метод для обработки команды next."""
         self.current_match_list = self.send_match_info(
             self.user_id,
             self.match_info_count,
@@ -166,6 +223,7 @@ class VKBot:
         self.match_info_count += 1  # Увеличиваем счетчик подходящих юзеров
 
     def _handle_add_to_favorites_command(self) -> None:
+        """Метод для обработки команды add_to_favorites."""
         self.favorites_db.add_match_to_favorites(
             self.user_id,
             self.current_match_list,
@@ -178,6 +236,7 @@ class VKBot:
         )
 
     def _handle_show_favorites_command(self) -> None:
+        """Метод для обработки команды show_favorites."""
         self.send_message(
             self.user_id,
             self.favorites_db.show_favorites(self.user_id),
@@ -185,6 +244,7 @@ class VKBot:
         )
 
     def _handle_add_to_black_list_command(self) -> None:
+        """Метод для обработки команды add_to_black_list."""
         self.black_list_db.add_match_to_black_list(
             self.user_id,
             self.current_match_list,
@@ -197,6 +257,7 @@ class VKBot:
         )
 
     def _handle_show_black_list_command(self) -> None:
+        """Метод для обработки команды show_black_list."""
         self.send_message(
             self.user_id,
             self.black_list_db.show_black_list(self.user_id),
@@ -204,6 +265,7 @@ class VKBot:
         )
 
     def _handle_delete_from_black_list_command(self) -> None:
+        """Метод для обработки команды delete_from_black_list."""
         self.send_message(
             self.user_id,
             MESSAGES["del_from_black_list_instruction"],
@@ -212,6 +274,7 @@ class VKBot:
         self.USER_STATE[self.user_id] = 'delete_blacklist'
 
     def _handle_delete_from_favorites_command(self) -> None:
+        """Метод для обработки команды delete_from_favorites."""
         self.send_message(
             self.user_id,
             MESSAGES["del_from_favorites_instruction"],
@@ -220,6 +283,7 @@ class VKBot:
         self.USER_STATE[self.user_id] = 'delete_favorites'
 
     def _handle_url_request(self, request: str) -> None:
+        """Метод для обработки URL-запроса."""
         match = re.match(VK_URL_PATTERN, request)
         del_user_id = int(match.group(1))
 
@@ -246,4 +310,5 @@ class VKBot:
             self.USER_STATE[self.user_id] = None
 
     def _handle_unknown_command(self) -> None:
+        """Метод для обработки неизвестной команды."""
         self.send_message(self.user_id, MESSAGES["unknown_command"])
