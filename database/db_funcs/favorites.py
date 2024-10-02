@@ -71,17 +71,17 @@ class FavoritesDBManager:
         if not favorites:
             return
 
-        blacklisted_entry = next((
+        favorites_entry = next((
             entry
             for entry in favorites
             if entry.favorite_vk_id == del_user_id
         ), None)
 
-        if not blacklisted_entry:
+        if not favorites_entry:
             return
 
-        blacklisted_entry = self.session.merge(blacklisted_entry)
-        self.session.delete(blacklisted_entry)
+        favorites_entry = self.session.merge(favorites_entry)
+        self.session.delete(favorites_entry)
         self.session.commit()
 
     def show_favorites(self, user_id: int) -> str | None:
