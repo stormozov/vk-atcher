@@ -1,8 +1,7 @@
-"""A module with text commands for the bot.
+"""Модуль с текстовыми командами для бота.
 
-This module defines a dictionary of commands that the bot can respond to.
-The keys of the dictionary are the command names, and the values are lists of
-alternative command names.
+Этот модуль определяет словарь команд, на которые может отвечать бот.
+Ключи словаря - названия команд, значения - список команд в виде кортежа.
 """
 
 COMMANDS = {

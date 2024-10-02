@@ -1,6 +1,6 @@
-"""A module with messages for the bot.
+"""Модуль с сообщениями для бота.
 
-This module contains various messages that the bot sends to users.
+Этот модуль содержит различные сообщения, которые бот отправляет пользователям.
 """
 
 MESSAGES = {

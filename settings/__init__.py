@@ -1,6 +1,6 @@
-"""Initialization of the settings package modules.
+"""Инициализация модулей пакета настроек.
 
-The modules that contain the bot settings are imported into this module.
+Модули, содержащие настройки бота, импортируются в этот модуль.
 """
 from .messages import MESSAGES
 from .commands import COMMANDS
