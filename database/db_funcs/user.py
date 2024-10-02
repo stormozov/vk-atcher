@@ -1,13 +1,24 @@
+"""Модуль для работы с пользователями.
+
+Модуль содержит в себе класс и методы для работы с пользователями и базой данных
+"""
 from sqlalchemy.exc import SQLAlchemyError
 
 from database.base import Matches, Session, Users
 
 
 class UserDBManager:
+    """Класс для работы с пользователями и базой данных."""
     def __init__(self) -> None:
+        """Инициализирует объект для работы с пользователями."""
         self.session = Session()
 
     def add_bot_user_to_db(self, data_list: list[dict]) -> None:
+        """Добавляет пользователя в базу данных.
+
+        Args:
+            data_list (list[dict]): Список словарей с данными пользователя.
+        """
         try:
             for item in data_list:
                 vk_id = item.get('id')
@@ -41,10 +52,16 @@ class UserDBManager:
         finally:
             self.session.close()
 
-    def add_match_user_to_db(self, data_list: list[dict], f_user_id: int) \
+    def add_match_user_to_db(self, match_data: list[dict], f_user_id: int) \
             -> None:
+        """Добавляет мэтч в базу данных.
+
+        Args:
+            match_data (list[dict]): Список словарей с данными мэтча.
+            f_user_id (int): ID пользователя VK, для которого добавляется мэтч.
+        """
         try:
-            for item in data_list:
+            for item in match_data:
                 vk_id = item.get('id')
                 first_name = item.get('first_name')
                 last_name = item.get('last_name')
@@ -86,7 +103,15 @@ class UserDBManager:
         finally:
             self.session.close()
 
-    def match_data_layout(self, f_user_id: int) -> list:
+    def match_data_layout(self, f_user_id: int) -> list[list]:
+        """Подготавливает данные о мэтчах для вывода в чат бота.
+
+        Args:
+            f_user_id (int): ID пользователя VK.
+
+        Returns:
+            list: Список списков с данными о мэтчах.
+        """
         match_info: list[dict] = self.get_match_info_to_print(f_user_id)
         all_match_info_list = []
 
@@ -121,6 +146,16 @@ class UserDBManager:
         return all_match_info_list
 
     def get_match_info_to_print(self, f_user_id: int) -> list[dict] | None:
+        """Получает информацию о мэтчах для вывода в чат бота.
+
+        Args:
+            f_user_id (int): ID пользователя VK.
+
+        Returns:
+            list: Список словарей с информацией о мэтчах.
+            None: Если мэтчи не найдены или произошла ошибка при получении
+                данных из базы данных.
+        """
         user_id: int = self.get_user_id_by_vk_id(f_user_id)
 
         try:
@@ -156,6 +191,16 @@ class UserDBManager:
             return None
 
     def get_user_params(self, user_id: int) -> dict | None:
+        """Получает параметры пользователя из базы данных.
+
+        Args:
+            user_id (int): ID пользователя VK.
+
+        Returns:
+            dict: Словарь с параметрами пользователя.
+            None: Если произошла ошибка при получении данных из базы данных
+                или пользователь не найден.
+        """
         try:
             user = self.get_user_by_vk_id(user_id)
             return (
@@ -173,6 +218,16 @@ class UserDBManager:
             return None
 
     def get_user_id_by_vk_id(self, vk_id: int) -> int | None:
+        """Получает ID пользователя из базы данных по его VK ID.
+
+        Args:
+            vk_id (int): ID пользователя VK.
+
+        Returns:
+            int: ID пользователя из базы данных.
+            None: Если произошла ошибка при получении данных из базы данных
+                или пользователь не найден.
+        """
         try:
             user = self.get_user_by_vk_id(vk_id)
             return (
@@ -185,6 +240,16 @@ class UserDBManager:
             return None
 
     def get_user_by_vk_id(self, user_id: int) -> Users | None:
+        """Получает запись пользователя из базы данных по его VK ID.
+
+        Args:
+            user_id (int): ID пользователя VK.
+
+        Returns:
+            Users: Запись пользователя из базы данных.
+            None: Если произошла ошибка при получении данных из базы данных
+                или пользователь не найден.
+        """
         return self.session.query(Users).filter_by(vk_id=user_id).first()
 
     def get_user_matches(
@@ -193,6 +258,25 @@ class UserDBManager:
             matched_vk_id: int = None,
             return_all: bool = False
     ) -> list[Matches] | Matches | None:
+        """Получает мэтчи пользователя из базы данных.
+
+        Args:
+            user_id (int): ID пользователя. По умолчанию None.
+                Нельзя передавать вместе с matched_vk_id.
+            matched_vk_id (int): ID пользователя, с которым совпадают мэтчи.
+                По умолчанию None. Нельзя передавать вместе с user_id.
+            return_all (bool): Возвращать все мэтчи пользователя или
+                только первый. По умолчанию False. Если True, то возвращаются
+                все запись мэтчей. Если False, то возвращается только первый.
+
+        Returns:
+            list[Matches] | Matches: Список мэтчей пользователя или
+                мэтч пользователя.
+            list: Пустой список, если произошла ошибка при получении данных из
+                базы данных или пользователь не найден.
+            None: Если произошла ошибка при получении данных из базы данных
+                или пользователь не найден.
+        """
         try:
             query = self.session.query(Matches)
 

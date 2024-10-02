@@ -1,12 +1,17 @@
+"""Модуль для работы с черным списком пользователя.
+
+Модуль содержит в себе класс и методы для работы с черным списком
+пользователя и базой данных.
+"""
 from database.base import BlackList, Session
 from database.db_funcs.user import UserDBManager
 from settings import MESSAGES
 
 
 class BlackListDBManager:
+    """Класс для работы с черным списком пользователя и базой данных."""
     def __init__(self) -> None:
-        """Инициализация менеджера черного списка, создание сессии и
-        экземпляра менеджера базы данных пользователей."""
+        """Инициализирует объект для работы с черным списком пользователя."""
         self.session = Session()
         self.user_db = UserDBManager()
 
@@ -50,8 +55,10 @@ class BlackListDBManager:
         """Удаляет пользователя из черного списка.
 
         Args:
-            user_id (int): ID пользователя VK, для которого осуществляется удаление.
-            del_user_id (int): ID пользователя VK, которого нужно удалить из черного списка.
+            user_id (int): ID пользователя VK, для которого осуществляется
+                удаление.
+            del_user_id (int): ID пользователя VK, которого нужно удалить
+                из черного списка.
         """
         vk_user_id = self.user_db.get_user_id_by_vk_id(user_id)
 
@@ -79,13 +86,15 @@ class BlackListDBManager:
         self.session.commit()
 
     def show_black_list(self, user_id: int) -> str | None:
-        """Показывает черный список пользователя.
+        """Выводит в чат пользователя форматированный черный список.
 
         Args:
-            user_id (int): ID пользователя VK, чёрный список которого нужно отобразить.
+            user_id (int): ID пользователя VK, чёрный список которого
+                нужно отобразить.
 
         Returns:
-            str | None: Отформатированная строка с чёрным списком или сообщение о его отсутствии.
+            str | None: Отформатированная строка с чёрным списком
+                или сообщение о его отсутствии.
         """
         vk_user_id = self.user_db.get_user_id_by_vk_id(user_id)
 
@@ -111,13 +120,11 @@ class BlackListDBManager:
         Returns:
             str: Отформатированная строка черного списка.
         """
-        result = "\n".join(
-            [
-                f"{i}. {black_listed.first_name} {black_listed.last_name} "
-                f"— {black_listed.profile_link}"
-                for i, black_listed in enumerate(black_list, start=1)
-            ]
-        )
+        result = "\n".join([
+            f"{i}. {black_listed.first_name} {black_listed.last_name} "
+            f"— {black_listed.profile_link}"
+            for i, black_listed in enumerate(black_list, start=1)
+        ])
         return f"{MESSAGES['show_black_list']}\n\n{result}"
 
     def _get_existing_black_list_entry(
@@ -129,12 +136,16 @@ class BlackListDBManager:
         """Получает запись черного списка для конкретного пользователя.
 
         Args:
-            user_id (int): ID пользователя VK, чёрный список которого проверяется.
-            blocked_vk_id (int, optional): ID заблокированного пользователя VK. По умолчанию None.
-            return_all (bool, optional): Флаг для возврата всех записей. По умолчанию False.
+            user_id (int): ID пользователя VK, чёрный список которого
+                проверяется.
+            blocked_vk_id (int, optional): ID заблокированного пользователя VK.
+                По умолчанию None.
+            return_all (bool, optional): Флаг для возврата всех записей.
+                По умолчанию False.
 
         Returns:
-            BlackList | list[BlackList] | None: Запись(и) черного списка или None, если ничего не найдено.
+            BlackList | list[BlackList] | None: Запись(-и) черного списка
+                или None, если ничего не найдено.
         """
         query = self.session.query(BlackList).filter_by(user_id=user_id)
 
